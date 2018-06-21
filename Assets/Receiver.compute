@@ -1,0 +1,44 @@
+#pragma kernel DecodeUYVY
+#pragma kernel DecodeUYVA
+
+Buffer<uint> Source;
+RWTexture2D<half4> Destination;
+
+half3 YUV2RGB(half3 yuv)
+{
+    yuv.yz -= 0.5;
+    half r = yuv.x + 1.403 * yuv.z;
+    half g = yuv.x - 0.344 * yuv.y - 0.714 * yuv.z;
+    half b = yuv.x + 1.770 * yuv.y;
+    return half3(r, g, b);
+}
+
+half4 Unpack32(uint v)
+{
+    return half4(
+        ( v        & 0xff) / 255.0,
+        ((v >>  8) & 0xff) / 255.0,
+        ((v >> 16) & 0xff) / 255.0,
+        ((v >> 24) & 0xff) / 255.0
+    );
+}
+
+[numthreads(8, 8, 1)]
+void DecodeUYVY(uint2 id : SV_DispatchThreadID)
+{
+    uint w, h;
+    Destination.GetDimensions(w, h);
+
+    half4 uyvy = Unpack32(Source[id.x + (h - 1 - id.y) * w / 2]);
+
+    uint2 p1 = id * uint2(2, 1);
+    uint2 p2 = p1 + uint2(1, 0);
+
+    Destination[p1] = half4(YUV2RGB(uyvy.yxz), 1);
+    Destination[p2] = half4(YUV2RGB(uyvy.wxz), 1);
+}
+
+[numthreads(8, 8, 1)]
+void DecodeUYVA(uint2 id : SV_DispatchThreadID)
+{
+}

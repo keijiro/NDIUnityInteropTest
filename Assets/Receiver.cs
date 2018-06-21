@@ -1,20 +1,33 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using NewTek;
 
-sealed class RecvTest : MonoBehaviour
+sealed class Receiver : MonoBehaviour
 {
+    [SerializeField, HideInInspector] ComputeShader _decoder;
+
     IntPtr _findInstance;
     IntPtr _recvInstance;
 
-    Texture2D _texture;
+    ComputeBuffer _buffer;
+    RenderTexture _texture;
 
     void Start()
     {
         var findOptions = new NDIlib.find_create_t{ show_local_sources = true };
         _findInstance = NDIlib.find_create_v2(ref findOptions);
+    }
+
+    void OnDisable()
+    {
+        if (_buffer != null)
+        {
+            _buffer.Dispose();
+            _buffer = null;
+        }
     }
 
     void OnDestroy()
@@ -47,6 +60,7 @@ sealed class RecvTest : MonoBehaviour
 
             var recvOptions = new NDIlib.recv_create_v3_t {
                 source_to_connect_to = source,
+                color_format = NDIlib.recv_color_format_e.recv_color_format_fastest,
                 bandwidth = NDIlib.recv_bandwidth_e.recv_bandwidth_highest
             };
             _recvInstance = NDIlib.recv_create_v3(ref recvOptions);
@@ -65,18 +79,43 @@ sealed class RecvTest : MonoBehaviour
         }
     }
 
-    void UpdateTexture(int width, int height, IntPtr data)
+    unsafe void UpdateTexture(int width, int height, IntPtr data)
     {
+        var dataLength = width / 2 * height;
+
+        if (_buffer != null && _buffer.count != dataLength)
+        {
+            _buffer.Dispose();
+            _buffer = null;
+        }
+
+        if (_buffer == null)
+            _buffer = new ComputeBuffer(dataLength, 4);
+
         if (_texture != null && (_texture.width != width || _texture.height != height))
         {
             Destroy(_texture);
             _texture = null;
         }
 
-        if (_texture == null) _texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        if (_texture == null)
+        {
+            _texture = new RenderTexture(
+                width, height, 0,
+                RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB
+            );
+            _texture.enableRandomWrite = true;
+            _texture.Create();
+        }
 
-        _texture.LoadRawTextureData(data, width * height * 4);
-        _texture.Apply();
+        var temp = new NativeArray<uint>(dataLength, Allocator.Temp);
+        UnsafeUtility.MemCpy(temp.GetUnsafePtr(), (void*)data, dataLength * 4);
+        _buffer.SetData(temp);
+        temp.Dispose();
+
+        _decoder.SetBuffer(0, "Source", _buffer);
+        _decoder.SetTexture(0, "Destination", _texture);
+        _decoder.Dispatch(0, width / 2 / 8, height / 8, 1);
 
         GetComponent<Renderer>().material.mainTexture = _texture;
     }
