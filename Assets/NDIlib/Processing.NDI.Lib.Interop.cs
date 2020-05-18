@@ -5,7 +5,7 @@
 //
 //*************************************************************************************************************************************
 //
-// Copyright(c) 2014-2019 NewTek, inc
+// Copyright(c) 2014-2020, NewTek, inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
 // files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify,
@@ -28,7 +28,6 @@ namespace NewTek
     [SuppressUnmanagedCodeSecurity]
     public static partial class NDIlib
     {
-
     #if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
         const string _dllName = "libndi.4";
     #elif UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
@@ -36,6 +35,8 @@ namespace NewTek
     #else
         const string _dllName = "__Internal";
     #endif
+
+        public static UInt32 NDILIB_CPP_DEFAULT_CONSTRUCTORS = 0;
 
         // This is not actually required, but will start and end the libraries which might get
         // you slightly better performance in some cases. In general it is more "correct" to
