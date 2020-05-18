@@ -11,7 +11,7 @@ sealed class Sender : MonoBehaviour
     IntPtr _sendInstance;
     RenderTexture _readbackRT;
 
-    void Start()
+    System.Collections.IEnumerator Start()
     {
         var name = Marshal.StringToHGlobalAnsi("Test Server");
         var sendOptions = new NDIlib.send_create_t{ p_ndi_name = name };
@@ -19,6 +19,15 @@ sealed class Sender : MonoBehaviour
         Marshal.FreeHGlobal(name);
 
         _readbackRT = new RenderTexture(Screen.width, Screen.height, 0);
+
+        while (true)
+        {
+            yield return new WaitForEndOfFrame();
+
+            ScreenCapture.CaptureScreenshotIntoRenderTexture(_readbackRT);
+            AsyncGPUReadback.Request
+              (_readbackRT, 0, TextureFormat.RGBA32, OnCompleteReadback);
+        }
     }
 
     void OnDestroy()
@@ -55,11 +64,5 @@ sealed class Sender : MonoBehaviour
         };
 
         NDIlib.send_send_video_async_v2(_sendInstance, ref frame);
-    }
-
-    void Update()
-    {
-        ScreenCapture.CaptureScreenshotIntoRenderTexture(_readbackRT);
-        AsyncGPUReadback.Request(_readbackRT, 0, OnCompleteReadback);
     }
 }
