@@ -7,7 +7,7 @@ using NewTek;
 
 sealed class Receiver : MonoBehaviour
 {
-    [SerializeField, HideInInspector] ComputeShader _decoder;
+    [SerializeField, HideInInspector] ComputeShader _decoder = null;
 
     IntPtr _findInstance;
     IntPtr _recvInstance;
