@@ -42,7 +42,6 @@ sealed class Sender : MonoBehaviour
     #region Converter operations
 
     int _width, _height;
-    (int, int) _dispatchCount;
     RenderTexture _capture;
     ComputeBuffer _converted;
 
