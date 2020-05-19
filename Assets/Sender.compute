@@ -18,7 +18,7 @@ float3 RGB2YUV(float3 rgb)
     return float3(y, u, v);
 }
 
-// Quantization and packing UYVY components
+// Packed UYVY conversion
 uint PackUYVY(float4 v)
 {
     v.yw = v.yw * 219 + 16;  //  Y components (limited range)
@@ -27,14 +27,23 @@ uint PackUYVY(float4 v)
     return i.x | (i.y << 8) | (i.z << 16) | (i.w << 24);
 }
 
+// Packed alpha conversion
+uint PackAAAA(float4 a)
+{
+    uint4 i = (uint4)(a * 255 + 0.5);
+    return i.x | (i.y << 8) | (i.z << 16) | (i.w << 24);
+}
+
 [numthreads(8, 8, 1)]
 void EncodeUYVY(uint2 id : SV_DispatchThreadID)
 {
-    uint2 p1 = id * uint2(2, 1);
-    uint2 p2 = p1 + uint2(1, 0);
+    uint2 sp = id * uint2(2, 1);
 
-    float3 yuv1 = RGB2YUV(Source[p1].xyz);
-    float3 yuv2 = RGB2YUV(Source[p2].xyz);
+    float4 s0 = Source[sp + uint2(0, 0)];
+    float4 s1 = Source[sp + uint2(1, 0)];
+
+    float3 yuv1 = RGB2YUV(s0.xyz);
+    float3 yuv2 = RGB2YUV(s1.xyz);
 
     float u = (yuv1.y + yuv2.y) / 2;
     float v = (yuv1.z + yuv2.z) / 2;
@@ -42,10 +51,41 @@ void EncodeUYVY(uint2 id : SV_DispatchThreadID)
 
     uint w, h;
     Source.GetDimensions(w, h);
-    Destination[id.x + w / 2 * id.y] = PackUYVY(uyvy);
+
+    Destination[id.y * w / 2 + id.x] = PackUYVY(uyvy);
 }
 
-[numthreads(8, 8, 1)]
+[numthreads(4, 8, 1)]
 void EncodeUYVA(uint2 id : SV_DispatchThreadID)
 {
+    uint2 sp = id * uint2(4, 1);
+
+    float4 s0 = Source[sp + uint2(0, 0)];
+    float4 s1 = Source[sp + uint2(1, 0)];
+    float4 s2 = Source[sp + uint2(2, 0)];
+    float4 s3 = Source[sp + uint2(3, 0)];
+
+    float3 yuv0 = RGB2YUV(s0.xyz);
+    float3 yuv1 = RGB2YUV(s1.xyz);
+    float3 yuv2 = RGB2YUV(s2.xyz);
+    float3 yuv3 = RGB2YUV(s3.xyz);
+
+    float u01 = (yuv0.y + yuv1.y) / 2;
+    float v01 = (yuv0.z + yuv1.z) / 2;
+
+    float u23 = (yuv2.y + yuv3.y) / 2;
+    float v23 = (yuv2.z + yuv3.z) / 2;
+
+    float4 uyvy01 = float4(u01, yuv0.x, v01, yuv1.x);
+    float4 uyvy23 = float4(u23, yuv2.x, v23, yuv3.x);
+
+    uint w, h;
+    Source.GetDimensions(w, h);
+
+    uint dp1 = id.y * w / 2 + id.x * 2;
+    uint dp2 = id.y * w / 4 + id.x + w * h / 2;
+
+    Destination[dp1 + 0] = PackUYVY(uyvy01);
+    Destination[dp1 + 1] = PackUYVY(uyvy23);
+    Destination[dp2] = PackAAAA(float4(s0.w, s1.w, s2.w, s3.w));
 }

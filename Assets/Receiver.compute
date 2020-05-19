@@ -22,7 +22,7 @@ float3 YUV2RGB(float3 yuv)
     return float3(r, g, b);
 }
 
-// Unpacking and dequantization UYVY components
+// Packed UYVY conversion
 float4 UnpackUYVY(uint v)
 {
     float4 f = uint4(v, v >> 8, v >> 16, v >> 24) & 0xff;
@@ -31,22 +31,46 @@ float4 UnpackUYVY(uint v)
     return f;
 }
 
+// Packed alpha conversion
+float4 UnpackAAAA(uint v)
+{
+    return (uint4(v, v >> 8, v >> 16, v >> 24) & 0xff) / 255.0;
+}
+
 [numthreads(8, 8, 1)]
 void DecodeUYVY(uint2 id : SV_DispatchThreadID)
 {
     uint w, h;
     Destination.GetDimensions(w, h);
 
-    float4 uyvy = UnpackUYVY(Source[id.x + (h - 1 - id.y) * w / 2]);
+    uint id_y = h - 1 - id.y;
 
-    uint2 p1 = id * uint2(2, 1);
-    uint2 p2 = p1 + uint2(1, 0);
+    uint sp = id_y * w / 2 + id.x;
+    float4 uyvy = UnpackUYVY(Source[sp]);
 
-    Destination[p1] = float4(YUV2RGB(uyvy.yxz), 1);
-    Destination[p2] = float4(YUV2RGB(uyvy.wxz), 1);
+    uint2 dp = id * uint2(2, 1);
+    Destination[dp + uint2(0, 0)] = float4(YUV2RGB(uyvy.yxz), 1);
+    Destination[dp + uint2(1, 0)] = float4(YUV2RGB(uyvy.wxz), 1);
 }
 
-[numthreads(8, 8, 1)]
+[numthreads(4, 8, 1)]
 void DecodeUYVA(uint2 id : SV_DispatchThreadID)
 {
+    uint w, h;
+    Destination.GetDimensions(w, h);
+
+    uint id_y = h - 1 - id.y;
+
+    uint sp1 = id_y * w / 2 + id.x * 2;
+    float4 uyvy01 = UnpackUYVY(Source[sp1 + 0]);
+    float4 uyvy23 = UnpackUYVY(Source[sp1 + 1]);
+
+    uint sp2 = id_y * w / 4 + id.x + w * h / 2;
+    float4 a0123 = UnpackAAAA(Source[sp2]);
+
+    uint2 dp = id * uint2(4, 1);
+    Destination[dp + uint2(0, 0)] = float4(YUV2RGB(uyvy01.yxz), a0123.x);
+    Destination[dp + uint2(1, 0)] = float4(YUV2RGB(uyvy01.wxz), a0123.y);
+    Destination[dp + uint2(2, 0)] = float4(YUV2RGB(uyvy23.yxz), a0123.z);
+    Destination[dp + uint2(3, 0)] = float4(YUV2RGB(uyvy23.wxz), a0123.w);
 }
