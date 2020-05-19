@@ -2,6 +2,12 @@ using System.Reflection;
 using UnityEngine;
 using IntPtr = System.IntPtr;
 
+static class Util
+{
+    public static int FrameDataCount(int width, int height, PixelFormat format)
+      => width * height * (format == PixelFormat.UYVA ? 3 : 2) / 4;
+}
+
 //
 // Directly load an unmanaged data array to a compute buffer via an
 // Intptr. This is not a public interface so will be broken one day.

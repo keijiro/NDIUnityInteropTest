@@ -6,8 +6,6 @@ using UnityEngine.Rendering;
 using IntPtr = System.IntPtr;
 using Marshal = System.Runtime.InteropServices.Marshal;
 
-public enum PixelFormat { UYVY, UYVA }
-
 sealed class Sender : MonoBehaviour
 {
     #region Serialized properties
@@ -45,12 +43,6 @@ sealed class Sender : MonoBehaviour
     RenderTexture _capture;
     ComputeBuffer _converted;
 
-    int ConvertedSize
-      => _width * _height * (_pixelFormat == PixelFormat.UYVA ? 3 : 2) / 4;
-
-    int ConverterPass
-      => (int)_pixelFormat;
-
     void InitConverter()
     {
         _width = Screen.width;
@@ -63,11 +55,8 @@ sealed class Sender : MonoBehaviour
            RenderTextureReadWrite.Linear);
 
         // Conversion buffer
-        _converted = new ComputeBuffer(ConvertedSize, 4);
-
-        // Converter setup
-        _converter.SetTexture(ConverterPass, "Source", _capture);
-        _converter.SetBuffer(ConverterPass, "Destination", _converted);
+        var count = Util.FrameDataCount(_width, _height, _pixelFormat);
+        _converted = new ComputeBuffer(count, 4);
     }
 
     void ReleaseConverterOnDisable()
@@ -84,14 +73,17 @@ sealed class Sender : MonoBehaviour
         _capture = null;
     }
 
+    void RunConversion()
+    {
+        var pass = (int)_pixelFormat;
+        _converter.SetTexture(pass, "Source", _capture);
+        _converter.SetBuffer(pass, "Destination", _converted);
+        _converter.Dispatch(pass, _width / 16, _height / 8, 1);
+    }
+
     #endregion
 
     #region Readback completion
-
-    NDIlib.FourCC_type_e FourCC
-      => _pixelFormat == PixelFormat.UYVY ?
-           NDIlib.FourCC_type_e.FourCC_type_UYVY :
-           NDIlib.FourCC_type_e.FourCC_type_UYVA;
 
     unsafe void OnCompleteReadback(AsyncGPUReadbackRequest request)
     {
@@ -104,7 +96,7 @@ sealed class Sender : MonoBehaviour
 
         var frame = new NDIlib.video_frame_v2_t
           { xres = _width, yres = _height,
-            FourCC = FourCC, frame_format_type = format,
+            FourCC = _pixelFormat.ToFourCC(), frame_format_type = format,
             p_data = ptr, line_stride_in_bytes = _width * 2 }; 
 
         // Send via NDI
@@ -127,7 +119,7 @@ sealed class Sender : MonoBehaviour
 
             // Request chain: Capture -> Convert -> Readback
             ScreenCapture.CaptureScreenshotIntoRenderTexture(_capture);
-            _converter.Dispatch(ConverterPass, _width / 16, _height / 8, 1);
+            RunConversion();
             AsyncGPUReadback.Request(_converted, OnCompleteReadback);
         }
     }

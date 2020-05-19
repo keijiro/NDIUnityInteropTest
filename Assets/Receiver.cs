@@ -41,10 +41,11 @@ sealed class Receiver : MonoBehaviour
         Debug.Log($"Sender found: {name}");
 
         // Recv instantiation
-        var opt = new NDIlib.recv_create_v3_t
-          { bandwidth = NDIlib.recv_bandwidth_e.recv_bandwidth_highest,
-            color_format = NDIlib.recv_color_format_e.recv_color_format_fastest,
-            source_to_connect_to = source };
+        var opt = new NDIlib.recv_create_v3_t {
+          bandwidth = NDIlib.recv_bandwidth_e.recv_bandwidth_highest,
+          color_format = NDIlib.recv_color_format_e.recv_color_format_fastest,
+          source_to_connect_to = source
+        };
         _ndiRecv = NDIlib.recv_create_v3(ref opt);
     }
 
@@ -71,12 +72,6 @@ sealed class Receiver : MonoBehaviour
     ComputeBuffer _received;
     RenderTexture _converted;
 
-    int FrameDataCount
-      => _width * _height * (_pixelFormat == PixelFormat.UYVA ? 3 : 2) / 4;
-
-    int ConverterPass
-      => (int)_pixelFormat;
-
     void ReleaseConverterOnDisable()
     {
         if (_received == null) return;
@@ -100,7 +95,7 @@ sealed class Receiver : MonoBehaviour
         var type = NDIlib.recv_capture_v2
           (_ndiRecv, ref frame, IntPtr.Zero, IntPtr.Zero, 0);
 
-        // Return if it's not a video frame.
+        // Return if it isn't a video frame.
         if (type != NDIlib.frame_type_e.frame_type_video)
         {
             NDIlib.recv_free_video_v2(_ndiRecv, ref frame);
@@ -110,12 +105,10 @@ sealed class Receiver : MonoBehaviour
         // Video frame information
         _width = frame.xres;
         _height = frame.yres;
-        _pixelFormat =
-          frame.FourCC == NDIlib.FourCC_type_e.FourCC_type_UYVY ?
-            PixelFormat.UYVY : PixelFormat.UYVA;
+        _pixelFormat = frame.FourCC.ToPixelFormat();
 
         // Receive buffer preparation
-        var count = FrameDataCount;
+        var count = Util.FrameDataCount(_width, _height, _pixelFormat);
 
         if (_received != null && _received.count != count)
         {
@@ -154,9 +147,10 @@ sealed class Receiver : MonoBehaviour
         }
 
         // Conversion
-        _converter.SetBuffer(ConverterPass, "Source", _received);
-        _converter.SetTexture(ConverterPass, "Destination", _converted);
-        _converter.Dispatch(ConverterPass, _width / 16, _height / 8, 1);
+        var pass = (int)_pixelFormat;
+        _converter.SetBuffer(pass, "Source", _received);
+        _converter.SetTexture(pass, "Destination", _converted);
+        _converter.Dispatch(pass, _width / 16, _height / 8, 1);
 
         GetComponent<Renderer>().material.mainTexture = _converted;
     }
