@@ -2,25 +2,33 @@
 #pragma kernel DecodeUYVA
 
 Buffer<uint> Source;
-RWTexture2D<half4> Destination;
+RWTexture2D<float4> Destination;
 
-half3 YUV2RGB(half3 yuv)
+// YUV to RGB conversion (based on Rec.709 constants)
+float3 YUV2RGB(float3 yuv)
 {
-    yuv.yz -= 0.5;
-    half r = yuv.x + 1.403 * yuv.z;
-    half g = yuv.x - 0.344 * yuv.y - 0.714 * yuv.z;
-    half b = yuv.x + 1.770 * yuv.y;
-    return half3(r, g, b);
+    const float K_B = 0.0722;
+    const float K_R = 0.2126;
+    const float K_G = 1 - K_B - K_R;
+
+    float y = yuv.x;
+    float u = yuv.y;
+    float v = yuv.z;
+
+    float r = y + v * (1 - K_R);
+    float b = y + u * (1 - K_B);
+    float g = (y - K_R * r - K_B * b) / K_G;
+
+    return float3(r, g, b);
 }
 
-half4 Unpack32(uint v)
+// Unpacking and dequantization UYVY components
+float4 UnpackUYVY(uint v)
 {
-    return half4(
-        ( v        & 0xff) / 255.0,
-        ((v >>  8) & 0xff) / 255.0,
-        ((v >> 16) & 0xff) / 255.0,
-        ((v >> 24) & 0xff) / 255.0
-    );
+    float4 f = uint4(v, v >> 8, v >> 16, v >> 24) & 0xff;
+    f.yw = (f.yw -  16) / 219; //  Y components (limited range)
+    f.xz = (f.xz - 128) / 112; // UV components (limited range)
+    return f;
 }
 
 [numthreads(8, 8, 1)]
@@ -29,13 +37,13 @@ void DecodeUYVY(uint2 id : SV_DispatchThreadID)
     uint w, h;
     Destination.GetDimensions(w, h);
 
-    half4 uyvy = Unpack32(Source[id.x + (h - 1 - id.y) * w / 2]);
+    float4 uyvy = UnpackUYVY(Source[id.x + (h - 1 - id.y) * w / 2]);
 
     uint2 p1 = id * uint2(2, 1);
     uint2 p2 = p1 + uint2(1, 0);
 
-    Destination[p1] = half4(YUV2RGB(uyvy.yxz), 1);
-    Destination[p2] = half4(YUV2RGB(uyvy.wxz), 1);
+    Destination[p1] = float4(YUV2RGB(uyvy.yxz), 1);
+    Destination[p2] = float4(YUV2RGB(uyvy.wxz), 1);
 }
 
 [numthreads(8, 8, 1)]

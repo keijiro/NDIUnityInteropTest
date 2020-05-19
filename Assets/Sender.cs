@@ -8,8 +8,12 @@ using Marshal = System.Runtime.InteropServices.Marshal;
 
 sealed class Sender : MonoBehaviour
 {
+    [SerializeField, HideInInspector] ComputeShader _encoder = null;
+
     IntPtr _sendInstance;
-    RenderTexture _readbackRT;
+
+    RenderTexture _texture;
+    ComputeBuffer _buffer;
 
     System.Collections.IEnumerator Start()
     {
@@ -18,15 +22,31 @@ sealed class Sender : MonoBehaviour
         _sendInstance = NDIlib.send_create(ref sendOptions);
         Marshal.FreeHGlobal(name);
 
-        _readbackRT = new RenderTexture(Screen.width, Screen.height, 0);
+        _texture = new RenderTexture(Screen.width, Screen.height, 0,
+                RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+
+        _buffer = new ComputeBuffer(Screen.width / 2 * Screen.height, 4);
 
         while (true)
         {
             yield return new WaitForEndOfFrame();
 
-            ScreenCapture.CaptureScreenshotIntoRenderTexture(_readbackRT);
-            AsyncGPUReadback.Request
-              (_readbackRT, 0, TextureFormat.RGBA32, OnCompleteReadback);
+            ScreenCapture.CaptureScreenshotIntoRenderTexture(_texture);
+
+            _encoder.SetTexture(0, "Source", _texture);
+            _encoder.SetBuffer(0, "Destination", _buffer);
+            _encoder.Dispatch(0, _texture.width / 2 / 8, _texture.height / 8, 1);
+
+            AsyncGPUReadback.Request(_buffer, OnCompleteReadback);
+        }
+    }
+
+    void OnDisable()
+    {
+        if (_buffer != null)
+        {
+            _buffer.Dispose();
+            _buffer = null;
         }
     }
 
@@ -38,10 +58,10 @@ sealed class Sender : MonoBehaviour
             _sendInstance = IntPtr.Zero;
         }
 
-        if (_readbackRT != null)
+        if (_texture != null)
         {
-            Destroy(_readbackRT);
-            _readbackRT = null;
+            Destroy(_texture);
+            _texture = null;
         }
     }
 
@@ -54,13 +74,13 @@ sealed class Sender : MonoBehaviour
 
         var frame = new NDIlib.video_frame_v2_t
         {
-            xres = _readbackRT.width,
-            yres = _readbackRT.height,
-            FourCC = NDIlib.FourCC_type_e.FourCC_type_RGBX,
+            xres = _texture.width,
+            yres = _texture.height,
+            FourCC = NDIlib.FourCC_type_e.FourCC_type_UYVY,
             frame_format_type =
               NDIlib.frame_format_type_e.frame_format_type_progressive,
             p_data = ptr,
-            line_stride_in_bytes = _readbackRT.width * 4
+            line_stride_in_bytes = _texture.width * 2
         };
 
         NDIlib.send_send_video_async_v2(_sendInstance, ref frame);
