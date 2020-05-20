@@ -3,53 +3,42 @@ using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-using IntPtr = System.IntPtr;
-using Marshal = System.Runtime.InteropServices.Marshal;
-
 sealed class Sender : MonoBehaviour
 {
     #region Serialized properties
 
     [SerializeField] PixelFormat _pixelFormat = PixelFormat.UYVY;
-
     [SerializeField, HideInInspector] ComputeShader _converter = null;
 
     #endregion
 
-    #region Unmanaged resource operations
+    #region Private members
 
     NdiSend _ndiSend;
 
-    void InitSendInstance()
-      => _ndiSend = NdiSend.Create("Test");
+    // Screen capture render texture
+    RenderTexture _capture;
 
-    void ReleaseSendInstance()
-    {
-        _ndiSend?.Dispose();
-        _ndiSend = null;
-    }
+    // Conversion buffer
+    ComputeBuffer _converted;
+
+    int Width => _capture.width;
+    int Height => _capture.height;
 
     #endregion
 
     #region Converter operations
 
-    int _width, _height;
-    RenderTexture _capture;
-    ComputeBuffer _converted;
-
     void InitConverter()
     {
-        _width = Screen.width;
-        _height = Screen.height;
-
-        // Screen capture render texture
+        // Screen capture render texture allocation
         _capture = new RenderTexture
-          (_width, _height, 0,
+          (Screen.width, Screen.height, 0,
            RenderTextureFormat.ARGB32,
            RenderTextureReadWrite.Linear);
 
-        // Conversion buffer
-        var count = Util.FrameDataCount(_width, _height, _pixelFormat);
+        // Conversion buffer allocation
+        var count = Util.FrameDataCount(Width, Height, _pixelFormat);
         _converted = new ComputeBuffer(count, 4);
     }
 
@@ -67,12 +56,12 @@ sealed class Sender : MonoBehaviour
         _capture = null;
     }
 
-    void RunConversion()
+    void RunConverter()
     {
         var pass = (int)_pixelFormat;
         _converter.SetTexture(pass, "Source", _capture);
         _converter.SetBuffer(pass, "Destination", _converted);
-        _converter.Dispatch(pass, _width / 16, _height / 8, 1);
+        _converter.Dispatch(pass, Width / 16, Height / 8, 1);
     }
 
     #endregion
@@ -83,16 +72,15 @@ sealed class Sender : MonoBehaviour
     {
         if (_ndiSend == null) return;
 
-        var ptr = (IntPtr)NativeArrayUnsafeUtility.
+        var frame = new VideoFrame
+          { Width = Width, Height = Height,
+            LineStride = Width * 2,
+            FourCC = _pixelFormat.ToFourCC2(),
+            FrameFormat = FrameFormat.Progressive };
+
+        frame.Data = (System.IntPtr)NativeArrayUnsafeUtility.
           GetUnsafeReadOnlyPtr(request.GetData<byte>());
 
-        var frame = new VideoFrame
-          { Width = _width, Height = _height,
-            FourCC = _pixelFormat.ToFourCC2(),
-            FrameFormat = FrameFormat.Progressive,
-            Data = ptr, LineStride = _width * 2 };
-
-        // Send via NDI
         _ndiSend.SendVideoAsync(frame);
     }
 
@@ -102,7 +90,8 @@ sealed class Sender : MonoBehaviour
 
     System.Collections.IEnumerator Start()
     {
-        InitSendInstance();
+        _ndiSend = NdiSend.Create("Test");
+
         InitConverter();
 
         for (var eof = new WaitForEndOfFrame(); true;)
@@ -112,7 +101,7 @@ sealed class Sender : MonoBehaviour
 
             // Request chain: Capture -> Convert -> Readback
             ScreenCapture.CaptureScreenshotIntoRenderTexture(_capture);
-            RunConversion();
+            RunConverter();
             AsyncGPUReadback.Request(_converted, OnCompleteReadback);
         }
     }
@@ -122,7 +111,9 @@ sealed class Sender : MonoBehaviour
 
     void OnDestroy()
     {
-        ReleaseSendInstance();
+        _ndiSend?.Dispose();
+        _ndiSend = null;
+
         ReleaseConverterOnDestroy();
     }
 
