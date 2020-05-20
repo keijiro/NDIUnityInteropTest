@@ -16,7 +16,7 @@ sealed class Receiver : MonoBehaviour
     #region Unmanaged resource operations
 
     NdiFind _ndiFind;
-    IntPtr _ndiRecv;
+    NdiRecv _ndiRecv;
 
     void CreateNdiFind()
       => _ndiFind = NdiFind.Create();
@@ -31,26 +31,19 @@ sealed class Receiver : MonoBehaviour
         Debug.Log($"Sender found: {sources[0].NdiName}");
 
         // Recv instantiation
-        var opt = new NDIlib.recv_create_v3_t {
-          bandwidth = NDIlib.recv_bandwidth_e.recv_bandwidth_highest,
-          color_format = NDIlib.recv_color_format_e.recv_color_format_fastest,
-          source_to_connect_to = new NDIlib.source_t {
-                p_ndi_name = sources[0]._NdiName,
-                p_url_address = sources[0]._UrlAddress
-          }
+        var opt = new NdiRecv.Settings {
+            Source = sources[0],
+            ColorFormat = ColorFormat.Fastest,
+            Bandwidth = Bandwidth.Highest
         };
-        _ndiRecv = NDIlib.recv_create_v3(ref opt);
+        _ndiRecv = NdiRecv.Create(opt);
     }
 
     void ReleaseNdiFind()
       => _ndiFind?.Dispose();
 
     void ReleaseNdiRecv()
-    {
-        if (_ndiRecv == IntPtr.Zero) return;
-        NDIlib.recv_destroy(_ndiRecv);
-        _ndiRecv = IntPtr.Zero;
-    }
+      => _ndiRecv?.Dispose();
 
     #endregion
 
@@ -77,23 +70,14 @@ sealed class Receiver : MonoBehaviour
 
     bool TryCaptureFrame()
     {
-        // Frame struct (unmanaged)
-        var frame = new NDIlib.video_frame_v2_t();
-
         // Try capturing a frame.
-        var type = NDIlib.recv_capture_v2
-          (_ndiRecv, ref frame, IntPtr.Zero, IntPtr.Zero, 0);
-
-        // Return if it isn't a video frame.
-        if (type != NDIlib.frame_type_e.frame_type_video)
-        {
-            NDIlib.recv_free_video_v2(_ndiRecv, ref frame);
-            return false;
-        }
+        var frameOrNull = _ndiRecv.TryCaptureVideoFrame();
+        if (frameOrNull == null) return false;
+        var frame = (VideoFrame)frameOrNull;
 
         // Video frame information
-        _width = frame.xres;
-        _height = frame.yres;
+        _width = frame.Width;
+        _height = frame.Height;
         _pixelFormat = frame.FourCC.ToPixelFormat();
 
         // Receive buffer preparation
@@ -109,9 +93,9 @@ sealed class Receiver : MonoBehaviour
             _received = new ComputeBuffer(count, 4);
 
         // Receive buffer update
-        _received.SetData(frame.p_data, count, 4);
+        _received.SetData(frame.Data, count, 4);
 
-        NDIlib.recv_free_video_v2(_ndiRecv, ref frame);
+        _ndiRecv.FreeVideoFrame(frame);
         return true;
     }
 
@@ -163,7 +147,7 @@ sealed class Receiver : MonoBehaviour
 
     void Update()
     {
-        if (_ndiRecv == IntPtr.Zero)
+        if (_ndiRecv == null)
             TryCreateNdiRecv();
         else if (TryCaptureFrame())
             UpdateTexture();

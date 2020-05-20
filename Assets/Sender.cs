@@ -75,7 +75,7 @@ sealed class Sender : MonoBehaviour
         var frame = new VideoFrame
           { Width = Width, Height = Height,
             LineStride = Width * 2,
-            FourCC = _pixelFormat.ToFourCC2(),
+            FourCC = _pixelFormat.ToFourCC(),
             FrameFormat = FrameFormat.Progressive };
 
         frame.Data = (System.IntPtr)NativeArrayUnsafeUtility.

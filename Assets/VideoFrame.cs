@@ -16,6 +16,16 @@ public enum FourCC
     UYVA = 0x41565955
 }
 
+public enum FrameType
+{
+    None = 0,
+    Video = 1,
+    Audio = 2,
+    Metadata = 3,
+    Error = 4,
+    StatusChange = 100
+}
+
 [StructLayoutAttribute(LayoutKind.Sequential)]
 public struct VideoFrame
 {

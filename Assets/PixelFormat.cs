@@ -4,19 +4,14 @@ public enum PixelFormat { Invalid = -1, UYVY, UYVA }
 
 public static class PixelFormatExtension
 {
-    public static NDIlib.FourCC_type_e ToFourCC(this PixelFormat format)
-      => format == PixelFormat.UYVY ?
-        NDIlib.FourCC_type_e.FourCC_type_UYVY :
-        NDIlib.FourCC_type_e.FourCC_type_UYVA;
-
-    public static FourCC ToFourCC2(this PixelFormat format)
+    public static FourCC ToFourCC(this PixelFormat format)
       => format == PixelFormat.UYVY ? FourCC.UYVY : FourCC.UYVA;
 }
 
 public static class FourCCExtension
 {
-    public static PixelFormat ToPixelFormat(this NDIlib.FourCC_type_e fourCC)
-      => fourCC == NDIlib.FourCC_type_e.FourCC_type_UYVY ? PixelFormat.UYVY :
-         fourCC == NDIlib.FourCC_type_e.FourCC_type_UYVA ? PixelFormat.UYVA :
+    public static PixelFormat ToPixelFormat(this FourCC fourCC)
+      => fourCC == FourCC.UYVY ? PixelFormat.UYVY :
+         fourCC == FourCC.UYVA ? PixelFormat.UYVA :
          PixelFormat.Invalid;
 }
