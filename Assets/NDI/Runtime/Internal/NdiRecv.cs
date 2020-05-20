@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
+namespace NDI {
+
 public enum Bandwidth
 {
     MetadataOnly = -10,
@@ -78,4 +80,6 @@ public class NdiRecv : SafeHandleZeroOrMinusOneIsInvalid
     static extern void _FreeVideo(NdiRecv recv, in VideoFrame data);
 
     #endregion
+}
+
 }

@@ -1,8 +1,7 @@
 ﻿using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
-using IntPtr = System.IntPtr;
-using Marshal = System.Runtime.InteropServices.Marshal;
+namespace NDI {
 
 sealed class Receiver : MonoBehaviour
 {
@@ -153,4 +152,6 @@ sealed class Receiver : MonoBehaviour
     }
 
     #endregion
+}
+
 }

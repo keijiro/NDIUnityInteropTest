@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
+namespace NDI {
+
 public class NdiSend : SafeHandleZeroOrMinusOneIsInvalid
 {
     #region SafeHandle implementation
@@ -53,4 +55,6 @@ public class NdiSend : SafeHandleZeroOrMinusOneIsInvalid
     static extern void _SendVideoAsync(NdiSend send, in VideoFrame data);
 
     #endregion
+}
+
 }

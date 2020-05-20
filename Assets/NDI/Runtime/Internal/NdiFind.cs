@@ -2,6 +2,8 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
+namespace NDI {
+
 [StructLayoutAttribute(LayoutKind.Sequential)]
 public struct NdiSource
 {
@@ -59,4 +61,6 @@ public class NdiFind : SafeHandleZeroOrMinusOneIsInvalid
     static extern IntPtr _GetCurrentSources(NdiFind find, out uint count);
 
     #endregion
+}
+
 }

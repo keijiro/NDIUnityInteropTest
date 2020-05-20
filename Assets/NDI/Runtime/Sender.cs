@@ -2,6 +2,8 @@ using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+namespace NDI {
+
 sealed class Sender : MonoBehaviour
 {
     #region Serialized properties
@@ -115,4 +117,6 @@ sealed class Sender : MonoBehaviour
     }
 
     #endregion
+}
+
 }
