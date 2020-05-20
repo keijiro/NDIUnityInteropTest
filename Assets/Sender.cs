@@ -18,21 +18,15 @@ sealed class Sender : MonoBehaviour
 
     #region Unmanaged resource operations
 
-    IntPtr _sendInstance;
+    NdiSend _ndiSend;
 
     void InitSendInstance()
-    {
-        var name = Marshal.StringToHGlobalAnsi("Test Server");
-        var sendOptions = new NDIlib.send_create_t{ p_ndi_name = name };
-        _sendInstance = NDIlib.send_create(ref sendOptions);
-        Marshal.FreeHGlobal(name);
-    }
+      => _ndiSend = NdiSend.Create("Test");
 
     void ReleaseSendInstance()
     {
-        if (_sendInstance == IntPtr.Zero) return;
-        NDIlib.send_destroy(_sendInstance);
-        _sendInstance = IntPtr.Zero;
+        _ndiSend?.Dispose();
+        _ndiSend = null;
     }
 
     #endregion
@@ -87,20 +81,19 @@ sealed class Sender : MonoBehaviour
 
     unsafe void OnCompleteReadback(AsyncGPUReadbackRequest request)
     {
-        if (_sendInstance == IntPtr.Zero) return;
+        if (_ndiSend == null) return;
 
         var ptr = (IntPtr)NativeArrayUnsafeUtility.
           GetUnsafeReadOnlyPtr(request.GetData<byte>());
 
-        var format = NDIlib.frame_format_type_e.frame_format_type_progressive;
-
-        var frame = new NDIlib.video_frame_v2_t
-          { xres = _width, yres = _height,
-            FourCC = _pixelFormat.ToFourCC(), frame_format_type = format,
-            p_data = ptr, line_stride_in_bytes = _width * 2 }; 
+        var frame = new VideoFrame
+          { Width = _width, Height = _height,
+            FourCC = _pixelFormat.ToFourCC2(),
+            FrameFormat = FrameFormat.Progressive,
+            Data = ptr, LineStride = _width * 2 };
 
         // Send via NDI
-        NDIlib.send_send_video_async_v2(_sendInstance, ref frame);
+        _ndiSend.SendVideoAsync(frame);
     }
 
     #endregion

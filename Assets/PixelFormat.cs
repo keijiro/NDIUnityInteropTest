@@ -8,6 +8,9 @@ public static class PixelFormatExtension
       => format == PixelFormat.UYVY ?
         NDIlib.FourCC_type_e.FourCC_type_UYVY :
         NDIlib.FourCC_type_e.FourCC_type_UYVA;
+
+    public static FourCC ToFourCC2(this PixelFormat format)
+      => format == PixelFormat.UYVY ? FourCC.UYVY : FourCC.UYVA;
 }
 
 public static class FourCCExtension
