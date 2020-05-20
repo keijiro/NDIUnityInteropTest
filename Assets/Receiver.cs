@@ -15,46 +15,35 @@ sealed class Receiver : MonoBehaviour
 
     #region Unmanaged resource operations
 
-    IntPtr _ndiFind;
+    NdiFind _ndiFind;
     IntPtr _ndiRecv;
 
     void CreateNdiFind()
-    {
-        var opt = new NDIlib.find_create_t { show_local_sources = true };
-        _ndiFind = NDIlib.find_create_v2(ref opt);
-    }
+      => _ndiFind = NdiFind.Create();
 
     unsafe void TryCreateNdiRecv()
     {
-        if (_ndiFind == IntPtr.Zero) return;
+        if (_ndiFind == null || _ndiFind.IsInvalid || _ndiFind.IsClosed) return;
 
         // NDI source enumeration
-        var count = (System.UInt32)0;
-        var sources = NDIlib.find_get_current_sources(_ndiFind, ref count);
-        if (count == 0) return;
-
-        // First source entry
-        var source =
-          UnsafeUtility.ReadArrayElement<NDIlib.source_t>((void*)sources, 0);
-
-        var name = Marshal.PtrToStringAnsi(source.p_ndi_name);
-        Debug.Log($"Sender found: {name}");
+        var sources = _ndiFind.CurrentSources;
+        if (sources.IsEmpty) return;
+        Debug.Log($"Sender found: {sources[0].NdiName}");
 
         // Recv instantiation
         var opt = new NDIlib.recv_create_v3_t {
           bandwidth = NDIlib.recv_bandwidth_e.recv_bandwidth_highest,
           color_format = NDIlib.recv_color_format_e.recv_color_format_fastest,
-          source_to_connect_to = source
+          source_to_connect_to = new NDIlib.source_t {
+                p_ndi_name = sources[0]._NdiName,
+                p_url_address = sources[0]._UrlAddress
+          }
         };
         _ndiRecv = NDIlib.recv_create_v3(ref opt);
     }
 
     void ReleaseNdiFind()
-    {
-        if (_ndiFind == IntPtr.Zero) return;
-        NDIlib.find_destroy(_ndiFind);
-        _ndiFind = IntPtr.Zero;
-    }
+      => _ndiFind?.Dispose();
 
     void ReleaseNdiRecv()
     {

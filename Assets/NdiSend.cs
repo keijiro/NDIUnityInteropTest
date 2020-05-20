@@ -22,7 +22,7 @@ public class NdiSend : SafeHandleZeroOrMinusOneIsInvalid
     {
         var cname = Marshal.StringToHGlobalAnsi(name);
         var settings = new Settings { NdiName = cname };
-        var ptr = _Create(ref settings);
+        var ptr = _Create(settings);
         Marshal.FreeHGlobal(cname);
         return ptr;
     }
@@ -44,13 +44,13 @@ public class NdiSend : SafeHandleZeroOrMinusOneIsInvalid
     }
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_create")]
-    static extern NdiSend _Create(ref Settings settings);
+    static extern NdiSend _Create(in Settings settings);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_destroy")]
-    static extern void _Destroy(IntPtr instance);
+    static extern void _Destroy(IntPtr send);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_send_video_async_v2")]
-    static extern void _SendVideoAsync(NdiSend instance, in VideoFrame data);
+    static extern void _SendVideoAsync(NdiSend send, in VideoFrame data);
 
     #endregion
 }

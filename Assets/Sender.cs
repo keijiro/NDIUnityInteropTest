@@ -70,7 +70,7 @@ sealed class Sender : MonoBehaviour
 
     unsafe void OnCompleteReadback(AsyncGPUReadbackRequest request)
     {
-        if (_ndiSend == null) return;
+        if (_ndiSend == null || _ndiSend.IsInvalid || _ndiSend.IsClosed) return;
 
         var frame = new VideoFrame
           { Width = Width, Height = Height,
@@ -112,8 +112,6 @@ sealed class Sender : MonoBehaviour
     void OnDestroy()
     {
         _ndiSend?.Dispose();
-        _ndiSend = null;
-
         ReleaseConverterOnDestroy();
     }
 
