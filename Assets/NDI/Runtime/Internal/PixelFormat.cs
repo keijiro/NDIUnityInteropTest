@@ -1,5 +1,3 @@
-using NewTek;
-
 public enum PixelFormat { Invalid = -1, UYVY, UYVA }
 
 public static class PixelFormatExtension

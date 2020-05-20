@@ -1,5 +1,4 @@
-﻿using NewTek;
-using Unity.Collections.LowLevel.Unsafe;
+﻿using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 using IntPtr = System.IntPtr;
