@@ -11,6 +11,18 @@ namespace NDI
           => width * height * (format == PixelFormat.UYVA ? 3 : 2) / 4;
     }
 
+    public static class PixelFormatExtension
+    {
+        public static FourCC ToFourCC(this PixelFormat format)
+          => format == PixelFormat.UYVA ? FourCC.UYVA : FourCC.UYVY;
+    }
+
+    public static class FourCCExtension
+    {
+        public static PixelFormat ToPixelFormat(this FourCC fourCC)
+          => fourCC == FourCC.UYVA ? PixelFormat.UYVA : PixelFormat.UYVY;
+    }
+
     //
     // Directly load an unmanaged data array to a compute buffer via an
     // Intptr. This is not a public interface so will be broken one day.

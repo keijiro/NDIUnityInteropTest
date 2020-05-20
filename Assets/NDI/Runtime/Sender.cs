@@ -8,61 +8,94 @@ sealed class Sender : MonoBehaviour
 {
     #region Serialized properties
 
+    [SerializeField] string _name = "NDI Sender";
     [SerializeField] PixelFormat _pixelFormat = PixelFormat.UYVY;
     [SerializeField, HideInInspector] ComputeShader _converter = null;
 
     #endregion
 
-    #region Private members
+    #region MonoBehaviour implementation
 
     NdiSend _ndiSend;
 
-    // Screen capture render texture
-    RenderTexture _capture;
+    System.Collections.IEnumerator Start()
+    {
+        _ndiSend = NdiSend.Create(_name);
 
-    // Conversion buffer
-    ComputeBuffer _converted;
+        for (var eof = new WaitForEndOfFrame(); true;)
+        {
+            yield return eof;
 
-    int Width => _capture.width;
-    int Height => _capture.height;
+            // Request chain: Capture -> Convert -> Readback
+            ScreenCapture.CaptureScreenshotIntoRenderTexture(GetCaptureRT());
+            RunConverter();
+            AsyncGPUReadback.Request(_converted, OnCompleteReadback);
+        }
+    }
+
+    void OnDisable()
+      => ReleaseConverter();
+
+    void OnDestroy()
+    {
+        _ndiSend?.Dispose();
+        ReleaseCaptureRT();
+    }
 
     #endregion
 
-    #region Converter operations
+    #region Render texture for screen capture
 
-    void InitConverter()
+    RenderTexture _captureRT;
+
+    int Width => _captureRT.width;
+    int Height => _captureRT.height;
+
+    RenderTexture GetCaptureRT()
     {
-        // Screen capture render texture allocation
-        _capture = new RenderTexture
+        if (_captureRT != null) return _captureRT;
+
+        _captureRT = new RenderTexture
           (Screen.width, Screen.height, 0,
            RenderTextureFormat.ARGB32,
            RenderTextureReadWrite.Linear);
 
-        // Conversion buffer allocation
-        var count = Util.FrameDataCount(Width, Height, _pixelFormat);
-        _converted = new ComputeBuffer(count, 4);
+        return _captureRT;
     }
 
-    void ReleaseConverterOnDisable()
+    void ReleaseCaptureRT()
+    {
+        if (_captureRT == null) return;
+        Destroy(_captureRT);
+        _captureRT = null;
+    }
+
+    #endregion
+
+    #region Pixel format converter
+
+    ComputeBuffer _converted;
+
+    void RunConverter()
+    {
+        var count = Util.FrameDataCount(Width, Height, _pixelFormat);
+
+        // Buffer lazy allocation
+        if (_converted == null)
+            _converted = new ComputeBuffer(count, 4);
+
+        // Compute thread dispatching
+        var pass = (int)_pixelFormat;
+        _converter.SetTexture(pass, "Source", _captureRT);
+        _converter.SetBuffer(pass, "Destination", _converted);
+        _converter.Dispatch(pass, Width / 16, Height / 8, 1);
+    }
+
+    void ReleaseConverter()
     {
         if (_converted == null) return;
         _converted.Dispose();
         _converted = null;
-    }
-
-    void ReleaseConverterOnDestroy()
-    {
-        if (_capture == null) return;
-        Destroy(_capture);
-        _capture = null;
-    }
-
-    void RunConverter()
-    {
-        var pass = (int)_pixelFormat;
-        _converter.SetTexture(pass, "Source", _capture);
-        _converter.SetBuffer(pass, "Destination", _converted);
-        _converter.Dispatch(pass, Width / 16, Height / 8, 1);
     }
 
     #endregion
@@ -71,49 +104,26 @@ sealed class Sender : MonoBehaviour
 
     unsafe void OnCompleteReadback(AsyncGPUReadbackRequest request)
     {
-        if (_ndiSend == null || _ndiSend.IsInvalid || _ndiSend.IsClosed) return;
+        if (_ndiSend == null) return;
+        if (_ndiSend.IsInvalid || _ndiSend.IsClosed) return;
 
-        var frame = new VideoFrame
-          { Width = Width, Height = Height,
-            LineStride = Width * 2,
-            FourCC = _pixelFormat.ToFourCC(),
-            FrameFormat = FrameFormat.Progressive };
-
-        frame.Data = (System.IntPtr)NativeArrayUnsafeUtility.
+        // Raw pointer retrieval
+        var pdata = NativeArrayUnsafeUtility.
           GetUnsafeReadOnlyPtr(request.GetData<byte>());
 
-        _ndiSend.SendVideoAsync(frame);
-    }
-
-    #endregion
-
-    #region MonoBehaviour implementation
-
-    System.Collections.IEnumerator Start()
-    {
-        _ndiSend = NdiSend.Create("Test");
-
-        InitConverter();
-
-        for (var eof = new WaitForEndOfFrame(); true;)
+        // Frame data setup
+        var frame = new VideoFrame
         {
-            // Wait for the end of the frame.
-            yield return eof;
+            Width = Width,
+            Height = Height,
+            LineStride = Width * 2,
+            FourCC = _pixelFormat.ToFourCC(),
+            FrameFormat = FrameFormat.Progressive,
+            Data = (System.IntPtr)pdata
+        };
 
-            // Request chain: Capture -> Convert -> Readback
-            ScreenCapture.CaptureScreenshotIntoRenderTexture(_capture);
-            RunConverter();
-            AsyncGPUReadback.Request(_converted, OnCompleteReadback);
-        }
-    }
-
-    void OnDisable()
-      => ReleaseConverterOnDisable();
-
-    void OnDestroy()
-    {
-        _ndiSend?.Dispose();
-        ReleaseConverterOnDestroy();
+        // Send via NDI
+        _ndiSend.SendVideoAsync(frame);
     }
 
     #endregion
