@@ -3,11 +3,24 @@ using UnityEngine;
 
 namespace NDI {
 
-sealed class Receiver : MonoBehaviour
+public sealed class Receiver : MonoBehaviour
 {
+    #region Source settings
+
+    [SerializeField] string _sourceName = null;
+
+    #endregion
+
     #region Serialized properties
 
     [SerializeField, HideInInspector] ComputeShader _converter = null;
+
+    #endregion
+
+    #region Public method
+
+    public void RequestReconnect()
+      => ReleaseNdiRecv();
 
     #endregion
 
@@ -19,18 +32,24 @@ sealed class Receiver : MonoBehaviour
     void CreateNdiFind()
       => _ndiFind = NdiFind.Create();
 
+    NdiSource? TryGetSource()
+    {
+        foreach (var source in _ndiFind.CurrentSources)
+            if (source.NdiName == _sourceName) return source;
+        return null;
+    }
+
     unsafe void TryCreateNdiRecv()
     {
         if (_ndiFind == null || _ndiFind.IsInvalid || _ndiFind.IsClosed) return;
 
-        // NDI source enumeration
-        var sources = _ndiFind.CurrentSources;
-        if (sources.IsEmpty) return;
-        Debug.Log($"Sender found: {sources[0].NdiName}");
+        // Source search
+        var source = TryGetSource();
+        if (source == null) return;
 
         // Recv instantiation
         var opt = new NdiRecv.Settings {
-            Source = sources[0],
+            Source = (NdiSource)source,
             ColorFormat = ColorFormat.Fastest,
             Bandwidth = Bandwidth.Highest
         };
@@ -38,10 +57,16 @@ sealed class Receiver : MonoBehaviour
     }
 
     void ReleaseNdiFind()
-      => _ndiFind?.Dispose();
+    {
+        _ndiFind?.Dispose();
+        _ndiFind = null;
+    }
 
     void ReleaseNdiRecv()
-      => _ndiRecv?.Dispose();
+    {
+        _ndiRecv?.Dispose();
+        _ndiRecv = null;
+    }
 
     #endregion
 

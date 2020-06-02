@@ -723,6 +723,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a09ab5fc64402d49b12d170a7577986, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _sourceName: SKYREACH (NDI Sender)
   _converter: {fileID: 7200000, guid: fbb9f9dd93e2dca48a0993ee1e64a413, type: 3}
 --- !u!4 &1996099584
 Transform:
