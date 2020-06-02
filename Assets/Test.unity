@@ -321,7 +321,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _name: NDI Sender
-  _pixelFormat: 0
+  _enableAlpha: 0
   _converter: {fileID: 7200000, guid: f6b8573dcf6ea3a4fa44225fc68728c3, type: 3}
 --- !u!4 &404048833
 Transform:

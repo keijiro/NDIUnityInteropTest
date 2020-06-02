@@ -6,21 +6,11 @@ namespace NDI
 {
     static class Util
     {
-        public static int FrameDataCount
-          (int width, int height, PixelFormat format)
-          => width * height * (format == PixelFormat.UYVA ? 3 : 2) / 4;
-    }
+        public static int FrameDataCount(int width, int height, bool alpha)
+          => width * height * (alpha ? 3 : 2) / 4;
 
-    public static class PixelFormatExtension
-    {
-        public static FourCC ToFourCC(this PixelFormat format)
-          => format == PixelFormat.UYVA ? FourCC.UYVA : FourCC.UYVY;
-    }
-
-    public static class FourCCExtension
-    {
-        public static PixelFormat ToPixelFormat(this FourCC fourCC)
-          => fourCC == FourCC.UYVA ? PixelFormat.UYVA : PixelFormat.UYVY;
+        public static bool CheckAlpha(FourCC fourCC)
+          => fourCC == FourCC.UYVA;
     }
 
     //

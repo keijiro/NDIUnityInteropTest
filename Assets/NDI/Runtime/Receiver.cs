@@ -61,7 +61,7 @@ public sealed class Receiver : MonoBehaviour
     #region Converter operations
 
     int _width, _height;
-    PixelFormat _pixelFormat;
+    bool _enableAlpha;
     ComputeBuffer _received;
     RenderTexture _converted;
 
@@ -89,10 +89,10 @@ public sealed class Receiver : MonoBehaviour
         // Video frame information
         _width = frame.Width;
         _height = frame.Height;
-        _pixelFormat = frame.FourCC.ToPixelFormat();
+        _enableAlpha = Util.CheckAlpha(frame.FourCC);
 
         // Receive buffer preparation
-        var count = Util.FrameDataCount(_width, _height, _pixelFormat);
+        var count = Util.FrameDataCount(_width, _height, _enableAlpha);
 
         if (_received != null && _received.count != count)
         {
@@ -131,7 +131,7 @@ public sealed class Receiver : MonoBehaviour
         }
 
         // Conversion
-        var pass = (int)_pixelFormat;
+        var pass = _enableAlpha ? 1 : 0;
         _converter.SetBuffer(pass, "Source", _received);
         _converter.SetTexture(pass, "Destination", _converted);
         _converter.Dispatch(pass, _width / 16, _height / 8, 1);

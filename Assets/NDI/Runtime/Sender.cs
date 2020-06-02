@@ -9,7 +9,7 @@ sealed class Sender : MonoBehaviour
     #region Serialized properties
 
     [SerializeField] string _name = "NDI Sender";
-    [SerializeField] PixelFormat _pixelFormat = PixelFormat.UYVY;
+    [SerializeField] bool _enableAlpha = false;
     [SerializeField, HideInInspector] ComputeShader _converter = null;
 
     #endregion
@@ -78,14 +78,14 @@ sealed class Sender : MonoBehaviour
 
     void RunConverter()
     {
-        var count = Util.FrameDataCount(Width, Height, _pixelFormat);
+        var count = Util.FrameDataCount(Width, Height, _enableAlpha);
 
         // Buffer lazy allocation
         if (_converted == null)
             _converted = new ComputeBuffer(count, 4);
 
         // Compute thread dispatching
-        var pass = (int)_pixelFormat;
+        var pass = _enableAlpha ? 1 : 0;
         _converter.SetTexture(pass, "Source", _captureRT);
         _converter.SetBuffer(pass, "Destination", _converted);
         _converter.Dispatch(pass, Width / 16, Height / 8, 1);
@@ -117,7 +117,7 @@ sealed class Sender : MonoBehaviour
             Width = Width,
             Height = Height,
             LineStride = Width * 2,
-            FourCC = _pixelFormat.ToFourCC(),
+            FourCC = _enableAlpha ? FourCC.UYVA : FourCC.UYVY,
             FrameFormat = FrameFormat.Progressive,
             Data = (System.IntPtr)pdata
         };
