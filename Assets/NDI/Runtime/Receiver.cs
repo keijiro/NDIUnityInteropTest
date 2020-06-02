@@ -26,23 +26,17 @@ public sealed class Receiver : MonoBehaviour
 
     #region Unmanaged resource operations
 
-    NdiFind _ndiFind;
     NdiRecv _ndiRecv;
-
-    void CreateNdiFind()
-      => _ndiFind = NdiFind.Create();
 
     NdiSource? TryGetSource()
     {
-        foreach (var source in _ndiFind.CurrentSources)
+        foreach (var source in SharedInstance.Find.CurrentSources)
             if (source.NdiName == _sourceName) return source;
         return null;
     }
 
     unsafe void TryCreateNdiRecv()
     {
-        if (_ndiFind == null || _ndiFind.IsInvalid || _ndiFind.IsClosed) return;
-
         // Source search
         var source = TryGetSource();
         if (source == null) return;
@@ -54,12 +48,6 @@ public sealed class Receiver : MonoBehaviour
             Bandwidth = Bandwidth.Highest
         };
         _ndiRecv = NdiRecv.Create(opt);
-    }
-
-    void ReleaseNdiFind()
-    {
-        _ndiFind?.Dispose();
-        _ndiFind = null;
     }
 
     void ReleaseNdiRecv()
@@ -155,15 +143,11 @@ public sealed class Receiver : MonoBehaviour
 
     #region MonoBehaviour implementation
 
-    void Start()
-      => CreateNdiFind();
-
     void OnDisable()
       => ReleaseConverterOnDisable();
 
     void OnDestroy()
     {
-        ReleaseNdiFind();
         ReleaseNdiRecv();
         ReleaseConverterOnDestroy();
     }

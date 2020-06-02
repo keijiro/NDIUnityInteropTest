@@ -7,7 +7,6 @@ namespace NDI.Editor {
 [CustomEditor(typeof(Receiver))]
 sealed class ReceiverEditor : UnityEditor.Editor
 {
-    NdiFind _ndiFind;
     SerializedProperty _sourceName;
 
     static class Styles
@@ -20,7 +19,7 @@ sealed class ReceiverEditor : UnityEditor.Editor
     {
         var menu = new GenericMenu();
 
-        var sources = _ndiFind.CurrentSources;
+        var sources = SharedInstance.Find.CurrentSources;
 
         if (sources.Length > 0)
         {
@@ -55,16 +54,8 @@ sealed class ReceiverEditor : UnityEditor.Editor
 
     void OnEnable()
     {
-        _ndiFind = NdiFind.Create();
-
         var finder = new PropertyFinder(serializedObject);
         _sourceName = finder["_sourceName"];
-    }
-
-    void OnDisable()
-    {
-        _ndiFind?.Dispose();
-        _ndiFind = null;
     }
 
     public override void OnInspectorGUI()
