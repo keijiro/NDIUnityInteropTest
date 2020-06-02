@@ -8,9 +8,12 @@ namespace NDI.Editor {
 sealed class ReceiverEditor : UnityEditor.Editor
 {
     SerializedProperty _sourceName;
+    SerializedProperty _targetRenderer;
+    SerializedProperty _targetMaterialProperty;
 
     static class Styles
     {
+        public static Label Property = "Property";
         public static Label Select = "Select";
     }
 
@@ -56,6 +59,8 @@ sealed class ReceiverEditor : UnityEditor.Editor
     {
         var finder = new PropertyFinder(serializedObject);
         _sourceName = finder["_sourceName"];
+        _targetRenderer = finder["_targetRenderer"];
+        _targetMaterialProperty = finder["_targetMaterialProperty"];
     }
 
     public override void OnInspectorGUI()
@@ -75,6 +80,26 @@ sealed class ReceiverEditor : UnityEditor.Editor
             ShowSourceNameDropdown(rect);
 
         EditorGUILayout.EndHorizontal();
+
+        // Target texture/renderer
+        EditorGUILayout.PropertyField(_targetRenderer);
+
+        EditorGUI.indentLevel++;
+
+        if (_targetRenderer.hasMultipleDifferentValues)
+        {
+            // Multiple renderers selected: Show the simple text field.
+            EditorGUILayout.
+              PropertyField(_targetMaterialProperty, Styles.Property);
+        }
+        else if (_targetRenderer.objectReferenceValue != null)
+        {
+            // Single renderer: Show the material property selection dropdown.
+            MaterialPropertySelector.
+              DropdownList(_targetRenderer, _targetMaterialProperty);
+        }
+
+        EditorGUI.indentLevel--;
 
         serializedObject.ApplyModifiedProperties();
     }

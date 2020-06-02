@@ -9,9 +9,41 @@ public sealed class Receiver : MonoBehaviour
 
     [SerializeField] string _sourceName = null;
 
+    public string sourceName
+      { get => _sourceName;
+        set => SetSourceName(value); }
+
+    void SetSourceName(string name)
+    {
+        _sourceName = name;
+        RequestReconnect();
+    }
+
     #endregion
 
-    #region Serialized properties
+    #region Target settings
+
+    [SerializeField] RenderTexture _targetTexture = null;
+
+    public RenderTexture targetTexture
+      { get => _targetTexture;
+        set => _targetTexture = value; }
+
+    [SerializeField] Renderer _targetRenderer = null;
+
+    public Renderer targetRenderer
+      { get => _targetRenderer;
+        set => _targetRenderer = value; }
+
+    [SerializeField] string _targetMaterialProperty = null;
+
+    public string targetMaterialProperty
+      { get => _targetMaterialProperty;
+        set => _targetMaterialProperty = value; }
+
+    #endregion
+
+    #region Hidden serialized properties
 
     [SerializeField, HideInInspector] ComputeShader _converter = null;
 
@@ -135,8 +167,26 @@ public sealed class Receiver : MonoBehaviour
         _converter.SetBuffer(pass, "Source", _received);
         _converter.SetTexture(pass, "Destination", _converted);
         _converter.Dispatch(pass, _width / 16, _height / 8, 1);
+    }
 
-        GetComponent<Renderer>().material.mainTexture = _converted;
+    #endregion
+
+    #region Output functions
+
+    MaterialPropertyBlock _propertyBlock;
+
+    void UpdateRendererOverride()
+    {
+        if (_targetRenderer == null || _converted == null) return;
+
+        // Material property block lazy initialization
+        if (_propertyBlock == null)
+            _propertyBlock = new MaterialPropertyBlock();
+
+        // Read-modify-write
+        _targetRenderer.GetPropertyBlock(_propertyBlock);
+        _propertyBlock.SetTexture(_targetMaterialProperty, _converted);
+        _targetRenderer.SetPropertyBlock(_propertyBlock);
     }
 
     #endregion
@@ -158,6 +208,8 @@ public sealed class Receiver : MonoBehaviour
             TryCreateNdiRecv();
         else if (TryCaptureFrame())
             UpdateTexture();
+
+        UpdateRendererOverride();
     }
 
     #endregion
