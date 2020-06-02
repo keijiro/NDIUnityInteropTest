@@ -1,5 +1,3 @@
-using AssemblyReloadEvents = UnityEditor.AssemblyReloadEvents;
-
 namespace NDI {
 
 static class SharedInstance
@@ -19,7 +17,9 @@ static class SharedInstance
     {
         if (_initialized) return;
 
-        AssemblyReloadEvents.beforeAssemblyReload += OnDomainReload;
+    #if UNITY_EDITOR
+        UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += OnDomainReload;
+    #endif
 
         _ndiFind = NdiFind.Create();
 
