@@ -7,13 +7,13 @@ namespace NDI.Editor {
 [CustomEditor(typeof(Sender))]
 sealed class SenderEditor : UnityEditor.Editor
 {
-    SerializedProperty _name;
+    SerializedProperty _sourceName;
     SerializedProperty _enableAlpha;
 
     void OnEnable()
     {
         var finder = new PropertyFinder(serializedObject);
-        _name = finder["_name"];
+        _sourceName = finder["_sourceName"];
         _enableAlpha = finder["_enableAlpha"];
     }
 
@@ -21,7 +21,7 @@ sealed class SenderEditor : UnityEditor.Editor
     {
         serializedObject.Update();
 
-        EditorGUILayout.PropertyField(_name);
+        EditorGUILayout.PropertyField(_sourceName);
         EditorGUILayout.PropertyField(_enableAlpha);
 
         serializedObject.ApplyModifiedProperties();

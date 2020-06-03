@@ -5,7 +5,7 @@ namespace NDI {
 
 public sealed class Receiver : MonoBehaviour
 {
-    #region Source settings
+    #region NDI source settings
 
     [SerializeField] string _sourceName = null;
 
@@ -49,14 +49,14 @@ public sealed class Receiver : MonoBehaviour
 
     #endregion
 
-    #region Public method
+    #region Internal method (for editor use)
 
-    public void RequestReconnect()
+    internal void RequestReconnect()
       => ReleaseNdiRecv();
 
     #endregion
 
-    #region Unmanaged resource operations
+    #region Unmanaged resource management
 
     NdiRecv _ndiRecv;
 

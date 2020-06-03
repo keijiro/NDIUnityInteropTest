@@ -6,40 +6,55 @@ namespace NDI {
 
 sealed class Sender : MonoBehaviour
 {
-    #region Serialized properties
+    #region NDI source settings
 
-    [SerializeField] string _name = "NDI Sender";
+    [SerializeField] string _sourceName = "NDI Sender";
+
+    public string sourceName
+      { get => _sourceName;
+        set => SetSourceName(value); }
+
+    void SetSourceName(string name)
+    {
+        _sourceName = name;
+        RequestReset();
+    }
+
     [SerializeField] bool _enableAlpha = false;
+
+    public bool enableAlpha
+      { get => _enableAlpha;
+        set => _enableAlpha = value; }
+
+    #endregion
+
+    #region Hidden serialized properties
+
     [SerializeField, HideInInspector] ComputeShader _converter = null;
 
     #endregion
 
-    #region MonoBehaviour implementation
+    #region Internal method (for editor use)
+
+    internal void RequestReset()
+      => ReleaseNdiSend();
+
+    #endregion
+
+    #region Unmanaged resource management
 
     NdiSend _ndiSend;
 
-    System.Collections.IEnumerator Start()
+    void LazyInitNdiSend()
     {
-        _ndiSend = NdiSend.Create(_name);
-
-        for (var eof = new WaitForEndOfFrame(); true;)
-        {
-            yield return eof;
-
-            // Request chain: Capture -> Convert -> Readback
-            ScreenCapture.CaptureScreenshotIntoRenderTexture(GetCaptureRT());
-            RunConverter();
-            AsyncGPUReadback.Request(_converted, OnCompleteReadback);
-        }
+        if (_ndiSend != null) return;
+        _ndiSend = NdiSend.Create(_sourceName);
     }
 
-    void OnDisable()
-      => ReleaseConverter();
-
-    void OnDestroy()
+    void ReleaseNdiSend()
     {
         _ndiSend?.Dispose();
-        ReleaseCaptureRT();
+        _ndiSend = null;
     }
 
     #endregion
@@ -124,6 +139,34 @@ sealed class Sender : MonoBehaviour
 
         // Send via NDI
         _ndiSend.SendVideoAsync(frame);
+    }
+
+    #endregion
+
+    #region MonoBehaviour implementation
+
+    System.Collections.IEnumerator Start()
+    {
+        for (var eof = new WaitForEndOfFrame(); true;)
+        {
+            LazyInitNdiSend();
+
+            yield return eof;
+
+            // Request chain: Capture -> Convert -> Readback
+            ScreenCapture.CaptureScreenshotIntoRenderTexture(GetCaptureRT());
+            RunConverter();
+            AsyncGPUReadback.Request(_converted, OnCompleteReadback);
+        }
+    }
+
+    void OnDisable()
+      => ReleaseConverter();
+
+    void OnDestroy()
+    {
+        ReleaseNdiSend();
+        ReleaseCaptureRT();
     }
 
     #endregion
