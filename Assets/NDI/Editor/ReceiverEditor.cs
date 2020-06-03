@@ -8,6 +8,7 @@ namespace NDI.Editor {
 sealed class ReceiverEditor : UnityEditor.Editor
 {
     SerializedProperty _sourceName;
+    SerializedProperty _targetTexture;
     SerializedProperty _targetRenderer;
     SerializedProperty _targetMaterialProperty;
 
@@ -59,6 +60,7 @@ sealed class ReceiverEditor : UnityEditor.Editor
     {
         var finder = new PropertyFinder(serializedObject);
         _sourceName = finder["_sourceName"];
+        _targetTexture = finder["_targetTexture"];
         _targetRenderer = finder["_targetRenderer"];
         _targetMaterialProperty = finder["_targetMaterialProperty"];
     }
@@ -82,6 +84,7 @@ sealed class ReceiverEditor : UnityEditor.Editor
         EditorGUILayout.EndHorizontal();
 
         // Target texture/renderer
+        EditorGUILayout.PropertyField(_targetTexture);
         EditorGUILayout.PropertyField(_targetRenderer);
 
         EditorGUI.indentLevel++;

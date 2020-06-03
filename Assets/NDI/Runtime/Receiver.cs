@@ -189,6 +189,12 @@ public sealed class Receiver : MonoBehaviour
         _targetRenderer.SetPropertyBlock(_propertyBlock);
     }
 
+    void BlitToTargetTexture()
+    {
+        if (_targetTexture == null | _converted == null) return;
+        Graphics.Blit(_converted, _targetTexture);
+    }
+
     #endregion
 
     #region MonoBehaviour implementation
@@ -210,6 +216,7 @@ public sealed class Receiver : MonoBehaviour
             UpdateTexture();
 
         UpdateRendererOverride();
+        BlitToTargetTexture();
     }
 
     #endregion
