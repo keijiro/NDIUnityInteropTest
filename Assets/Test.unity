@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.12731749, g: 0.13414757, b: 0.1210787, a: 1}
+  m_IndirectSpecularColor: {r: 0.12723479, g: 0.13407159, b: 0.12105903, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -320,9 +320,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2d98e5bfcdff4847ad69efa861a8e7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _name: NDI Sender
+  _sourceName: NDI Sender
   _enableAlpha: 0
-  _converter: {fileID: 7200000, guid: f6b8573dcf6ea3a4fa44225fc68728c3, type: 3}
+  _defaultConverter: {fileID: 11400000, guid: 1e53851a243f40440b036405ae12b0bd, type: 2}
 --- !u!4 &404048833
 Transform:
   m_ObjectHideFlags: 0
@@ -804,7 +804,7 @@ MonoBehaviour:
   _targetTexture: {fileID: 0}
   _targetRenderer: {fileID: 913602103}
   _targetMaterialProperty: _MainTex
-  _converter: {fileID: 7200000, guid: fbb9f9dd93e2dca48a0993ee1e64a413, type: 3}
+  _defaultConverter: {fileID: 11400000, guid: 1e53851a243f40440b036405ae12b0bd, type: 2}
 --- !u!4 &1996099584
 Transform:
   m_ObjectHideFlags: 0

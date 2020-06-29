@@ -28,12 +28,6 @@ sealed class Sender : MonoBehaviour
 
     #endregion
 
-    #region Hidden serialized properties
-
-    [SerializeField, HideInInspector] ComputeShader _converter = null;
-
-    #endregion
-
     #region Internal method (for editor use)
 
     internal void RequestReset()
@@ -41,7 +35,26 @@ sealed class Sender : MonoBehaviour
 
     #endregion
 
-    #region Unmanaged resource management
+    #region Pixel format converter object
+
+    [SerializeField] PixelFormatConverter _defaultConverter = null;
+
+    PixelFormatConverter _converterInstance;
+
+    PixelFormatConverter Converter
+      => _converterInstance ??
+         (_converterInstance = Instantiate(_defaultConverter));
+
+    void ReleaseConverter()
+    {
+        if (_converterInstance == null) return;
+        Destroy(_converterInstance);
+        _converterInstance = null;
+    }
+
+    #endregion
+
+    #region Unmanaged NDI object
 
     NdiSend _ndiSend;
 
@@ -87,34 +100,6 @@ sealed class Sender : MonoBehaviour
 
     #endregion
 
-    #region Pixel format converter
-
-    ComputeBuffer _converted;
-
-    void RunConverter()
-    {
-        var count = Util.FrameDataCount(Width, Height, _enableAlpha);
-
-        // Buffer lazy allocation
-        if (_converted == null)
-            _converted = new ComputeBuffer(count, 4);
-
-        // Compute thread dispatching
-        var pass = _enableAlpha ? 1 : 0;
-        _converter.SetTexture(pass, "Source", _captureRT);
-        _converter.SetBuffer(pass, "Destination", _converted);
-        _converter.Dispatch(pass, Width / 16, Height / 8, 1);
-    }
-
-    void ReleaseConverter()
-    {
-        if (_converted == null) return;
-        _converted.Dispose();
-        _converted = null;
-    }
-
-    #endregion
-
     #region Readback completion
 
     unsafe void OnCompleteReadback(AsyncGPUReadbackRequest request)
@@ -155,16 +140,14 @@ sealed class Sender : MonoBehaviour
 
             // Request chain: Capture -> Convert -> Readback
             ScreenCapture.CaptureScreenshotIntoRenderTexture(GetCaptureRT());
-            RunConverter();
-            AsyncGPUReadback.Request(_converted, OnCompleteReadback);
+            var converted = Converter.Encode(_captureRT, _enableAlpha);
+            AsyncGPUReadback.Request(converted, OnCompleteReadback);
         }
     }
 
-    void OnDisable()
-      => ReleaseConverter();
-
     void OnDestroy()
     {
+        ReleaseConverter();
         ReleaseNdiSend();
         ReleaseCaptureRT();
     }
