@@ -3,16 +3,20 @@
     {
       "name": "Unity NuGet",
       "url": "https://unitynuget-registry.azurewebsites.net",
-      "scopes": [ "org.nuget" ]
+      "scopes": [
+        "org.nuget"
+      ]
     },
     {
       "name": "Keijiro",
       "url": "https://registry.npmjs.com",
-      "scopes": [ "jp.keijiro" ]
+      "scopes": [
+        "jp.keijiro"
+      ]
     }
   ],
   "dependencies": {
-    "org.nuget.system.memory": "4.5.3",
-    "jp.keijiro.testcards": "1.0.0"
+    "com.unity.render-pipelines.universal": "7.4.1",
+    "org.nuget.system.memory": "4.5.4"
   }
 }
