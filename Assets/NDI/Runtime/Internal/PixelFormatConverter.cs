@@ -1,10 +1,13 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using IntPtr = System.IntPtr;
 
 namespace NDI {
 
 sealed class PixelFormatConverter : ScriptableObject
 {
+    #region Common members
+
     [SerializeField] ComputeShader _encoderCompute = null;
     [SerializeField] ComputeShader _decoderCompute = null;
 
@@ -32,6 +35,11 @@ sealed class PixelFormatConverter : ScriptableObject
         }
     }
 
+    #endregion
+
+    #region Encoder implementation
+
+    // Immediate mode version
     public ComputeBuffer Encode(Texture source, bool enableAlpha)
     {
         var width = source.width;
@@ -57,6 +65,38 @@ sealed class PixelFormatConverter : ScriptableObject
 
         return _encoderOutput;
     }
+
+    // Command buffer version
+    public ComputeBuffer Encode
+      (CommandBuffer cb, RenderTargetIdentifier source,
+       int width, int height, bool enableAlpha)
+    {
+        var dataCount = Util.FrameDataCount(width, height, enableAlpha);
+
+        // Reallocate the output buffer when the output size was changed.
+        if (_encoderOutput != null && _encoderOutput.count != dataCount)
+        {
+            _encoderOutput.Dispose();
+            _encoderOutput = null;
+        }
+
+        // Output buffer allocation
+        if (_encoderOutput == null)
+            _encoderOutput = new ComputeBuffer(dataCount, 4);
+
+        // Compute thread dispatching
+        var pass = enableAlpha ? 1 : 0;
+        cb.SetComputeTextureParam(_encoderCompute, pass, "Source", source);
+        cb.SetComputeBufferParam
+          (_encoderCompute, pass, "Destination", _encoderOutput);
+        cb.DispatchCompute(_encoderCompute, pass, width / 16, height / 8, 1);
+
+        return _encoderOutput;
+    }
+
+    #endregion
+
+    #region Decoder implementation
 
     public RenderTexture
       Decode(int width, int height, bool enableAlpha, IntPtr data)
@@ -108,6 +148,8 @@ sealed class PixelFormatConverter : ScriptableObject
 
         return _decoderOutput;
     }
+
+    #endregion
 }
 
 }

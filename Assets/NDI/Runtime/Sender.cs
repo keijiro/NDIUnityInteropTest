@@ -93,6 +93,37 @@ sealed partial class Sender : MonoBehaviour
 
     #endregion
 
+    #region SRP camera capture callback
+
+    void OnCameraCapture(RenderTargetIdentifier source, CommandBuffer cb)
+    {
+        var tempRT = Shader.PropertyToID("_TemporaryRT");
+        var width = _sourceCamera.pixelWidth;
+        var height = _sourceCamera.pixelHeight;
+
+        // Temporary RT allocation
+        cb.GetTemporaryRT
+          (tempRT, width, height, 0,
+           FilterMode.Bilinear, RenderTextureFormat.ARGB32,
+           RenderTextureReadWrite.Linear, 1, false);
+
+        // Blit to the temporary RT
+        cb.Blit(source, tempRT);
+
+        // Pixel format conversion
+        var converted =
+          Converter.Encode(cb, tempRT, width, height, _enableAlpha);
+
+        cb.ReleaseTemporaryRT(tempRT);
+
+        // GPU readback request
+        cb.RequestAsyncReadback
+          (converted, (AsyncGPUReadbackRequest req)
+             => OnCompleteReadback(req, width, height));
+    }
+
+    #endregion
+
     #region GPU readback completion callback
 
     unsafe void OnCompleteReadback
@@ -128,6 +159,24 @@ sealed partial class Sender : MonoBehaviour
     #endregion
 
     #region MonoBehaviour implementation
+
+    #if NDI_HAS_SRP
+
+    void OnEnable()
+    {
+        if (_captureMethod == CaptureMethod.Camera)
+            CameraCaptureBridge.AddCaptureAction
+              (_sourceCamera, OnCameraCapture);
+    }
+
+    void OnDisable()
+    {
+        if (_captureMethod == CaptureMethod.Camera)
+            CameraCaptureBridge.RemoveCaptureAction
+              (_sourceCamera, OnCameraCapture);
+    }
+
+    #endif
 
     System.Collections.IEnumerator Start()
     {

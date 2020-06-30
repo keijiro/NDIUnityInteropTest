@@ -1,6 +1,8 @@
 {
     "name": "NDI.Runtime",
-    "references": [],
+    "references": [
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": true,
@@ -8,6 +10,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.core",
+            "expression": "0.0.0",
+            "define": "NDI_HAS_SRP"
+        }
+    ],
     "noEngineReferences": false
 }
