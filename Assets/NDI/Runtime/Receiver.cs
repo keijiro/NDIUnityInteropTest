@@ -3,69 +3,12 @@ using UnityEngine;
 
 namespace NDI {
 
-public sealed class Receiver : MonoBehaviour
+public sealed partial class Receiver : MonoBehaviour
 {
-    #region NDI source settings
-
-    [SerializeField] string _sourceName = null;
-
-    public string sourceName
-      { get => _sourceName;
-        set => SetSourceName(value); }
-
-    void SetSourceName(string name)
-    {
-        _sourceName = name;
-        RequestReconnect();
-    }
-
-    #endregion
-
-    #region Target settings
-
-    [SerializeField] RenderTexture _targetTexture = null;
-
-    public RenderTexture targetTexture
-      { get => _targetTexture;
-        set => _targetTexture = value; }
-
-    [SerializeField] Renderer _targetRenderer = null;
-
-    public Renderer targetRenderer
-      { get => _targetRenderer;
-        set => _targetRenderer = value; }
-
-    [SerializeField] string _targetMaterialProperty = null;
-
-    public string targetMaterialProperty
-      { get => _targetMaterialProperty;
-        set => _targetMaterialProperty = value; }
-
-    #endregion
-
     #region Internal method (for editor use)
 
     internal void RequestReconnect()
       => ReleaseNdiRecv();
-
-    #endregion
-
-    #region Pixel format converter object
-
-    [SerializeField] PixelFormatConverter _defaultConverter = null;
-
-    PixelFormatConverter _converterInstance;
-
-    PixelFormatConverter Converter
-      => _converterInstance ??
-         (_converterInstance = Instantiate(_defaultConverter));
-
-    void ReleaseConverter()
-    {
-        if (_converterInstance == null) return;
-        Destroy(_converterInstance);
-        _converterInstance = null;
-    }
 
     #endregion
 
@@ -76,7 +19,7 @@ public sealed class Receiver : MonoBehaviour
     NdiSource? TryGetSource()
     {
         foreach (var source in SharedInstance.Find.CurrentSources)
-            if (source.NdiName == _sourceName) return source;
+            if (source.NdiName == _ndiName) return source;
         return null;
     }
 
@@ -118,7 +61,26 @@ public sealed class Receiver : MonoBehaviour
 
     #endregion
 
-    #region Output methods
+    #region Pixel format converter object
+
+    [SerializeField] PixelFormatConverter _defaultConverter = null;
+
+    PixelFormatConverter _converterInstance;
+
+    PixelFormatConverter Converter
+      => _converterInstance ??
+         (_converterInstance = Instantiate(_defaultConverter));
+
+    void ReleaseConverter()
+    {
+        if (_converterInstance == null) return;
+        Destroy(_converterInstance);
+        _converterInstance = null;
+    }
+
+    #endregion
+
+    #region Output method implementations
 
     MaterialPropertyBlock _propertyBlock;
 

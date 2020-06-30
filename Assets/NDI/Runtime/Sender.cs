@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 
 namespace NDI {
 
-sealed partial class Sender : MonoBehaviour
+public sealed partial class Sender : MonoBehaviour
 {
     #region Internal method (for editor use)
 
@@ -178,6 +178,12 @@ sealed partial class Sender : MonoBehaviour
 
     #endif
 
+    void OnDestroy()
+    {
+        ReleaseConverter();
+        ReleaseNdiSend();
+    }
+
     System.Collections.IEnumerator Start()
     {
         // A temporary Action object for the GPU readback completion callback.
@@ -208,12 +214,6 @@ sealed partial class Sender : MonoBehaviour
             if (converted != null)
                 AsyncGPUReadback.Request(converted, complete);
         }
-    }
-
-    void OnDestroy()
-    {
-        ReleaseConverter();
-        ReleaseNdiSend();
     }
 
     #endregion

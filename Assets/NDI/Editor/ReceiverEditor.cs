@@ -7,7 +7,7 @@ namespace NDI.Editor {
 [CustomEditor(typeof(Receiver))]
 sealed class ReceiverEditor : UnityEditor.Editor
 {
-    SerializedProperty _sourceName;
+    SerializedProperty _ndiName;
     SerializedProperty _targetTexture;
     SerializedProperty _targetRenderer;
     SerializedProperty _targetMaterialProperty;
@@ -19,7 +19,7 @@ sealed class ReceiverEditor : UnityEditor.Editor
     }
 
     // Create and show the source name dropdown.
-    void ShowSourceNameDropdown(Rect rect)
+    void ShowNdiNameDropdown(Rect rect)
     {
         var menu = new GenericMenu();
 
@@ -45,7 +45,7 @@ sealed class ReceiverEditor : UnityEditor.Editor
     void OnSelectSource(object name)
     {
         serializedObject.Update();
-        _sourceName.stringValue = (string)name;
+        _ndiName.stringValue = (string)name;
         serializedObject.ApplyModifiedProperties();
         RequestReconnect();
     }
@@ -59,7 +59,7 @@ sealed class ReceiverEditor : UnityEditor.Editor
     void OnEnable()
     {
         var finder = new PropertyFinder(serializedObject);
-        _sourceName = finder["_sourceName"];
+        _ndiName = finder["_ndiName"];
         _targetTexture = finder["_targetTexture"];
         _targetRenderer = finder["_targetRenderer"];
         _targetMaterialProperty = finder["_targetMaterialProperty"];
@@ -73,13 +73,13 @@ sealed class ReceiverEditor : UnityEditor.Editor
 
         // Source name text field
         EditorGUI.BeginChangeCheck();
-        EditorGUILayout.DelayedTextField(_sourceName);
+        EditorGUILayout.DelayedTextField(_ndiName);
         if (EditorGUI.EndChangeCheck()) RequestReconnect();
 
         // Source name dropdown
         var rect = EditorGUILayout.GetControlRect(false, GUILayout.Width(60));
         if (EditorGUI.DropdownButton(rect, Styles.Select, FocusType.Keyboard))
-            ShowSourceNameDropdown(rect);
+            ShowNdiNameDropdown(rect);
 
         EditorGUILayout.EndHorizontal();
 
