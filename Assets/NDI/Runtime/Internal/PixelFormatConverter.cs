@@ -31,7 +31,7 @@ sealed class PixelFormatConverter : ScriptableObject
         }
     }
 
-    public ComputeBuffer Encode(RenderTexture source, bool enableAlpha)
+    public ComputeBuffer Encode(Texture source, bool enableAlpha)
     {
         var width = source.width;
         var height = source.height;

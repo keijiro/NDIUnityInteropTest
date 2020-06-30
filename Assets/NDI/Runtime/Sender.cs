@@ -4,34 +4,30 @@ using UnityEngine.Rendering;
 
 namespace NDI {
 
-sealed class Sender : MonoBehaviour
+sealed partial class Sender : MonoBehaviour
 {
-    #region NDI source settings
-
-    [SerializeField] string _sourceName = "NDI Sender";
-
-    public string sourceName
-      { get => _sourceName;
-        set => SetSourceName(value); }
-
-    void SetSourceName(string name)
-    {
-        _sourceName = name;
-        RequestReset();
-    }
-
-    [SerializeField] bool _enableAlpha = false;
-
-    public bool enableAlpha
-      { get => _enableAlpha;
-        set => _enableAlpha = value; }
-
-    #endregion
-
     #region Internal method (for editor use)
 
     internal void RequestReset()
       => ReleaseNdiSend();
+
+    #endregion
+
+    #region Unmanaged NDI object
+
+    NdiSend _ndiSend;
+
+    void PrepareNdiSend()
+    {
+        if (_ndiSend != null) return;
+        _ndiSend = NdiSend.Create(_ndiName);
+    }
+
+    void ReleaseNdiSend()
+    {
+        _ndiSend?.Dispose();
+        _ndiSend = null;
+    }
 
     #endregion
 
@@ -54,30 +50,9 @@ sealed class Sender : MonoBehaviour
 
     #endregion
 
-    #region Unmanaged NDI object
-
-    NdiSend _ndiSend;
-
-    void LazyInitNdiSend()
-    {
-        if (_ndiSend != null) return;
-        _ndiSend = NdiSend.Create(_sourceName);
-    }
-
-    void ReleaseNdiSend()
-    {
-        _ndiSend?.Dispose();
-        _ndiSend = null;
-    }
-
-    #endregion
-
     #region Render texture for screen capture
 
     RenderTexture _captureRT;
-
-    int Width => _captureRT.width;
-    int Height => _captureRT.height;
 
     RenderTexture GetCaptureRT()
     {
@@ -102,10 +77,11 @@ sealed class Sender : MonoBehaviour
 
     #region Readback completion
 
-    unsafe void OnCompleteReadback(AsyncGPUReadbackRequest request)
+    unsafe void OnCompleteReadback
+      (AsyncGPUReadbackRequest request, int width, int height)
     {
-        if (_ndiSend == null) return;
-        if (_ndiSend.IsInvalid || _ndiSend.IsClosed) return;
+        if (_ndiSend == null || _ndiSend.IsInvalid || _ndiSend.IsClosed)
+            return;
 
         // Raw pointer retrieval
         var pdata = NativeArrayUnsafeUtility.
@@ -114,9 +90,9 @@ sealed class Sender : MonoBehaviour
         // Frame data setup
         var frame = new VideoFrame
         {
-            Width = Width,
-            Height = Height,
-            LineStride = Width * 2,
+            Width = width,
+            Height = height,
+            LineStride = width * 2,
             FourCC = _enableAlpha ? FourCC.UYVA : FourCC.UYVY,
             FrameFormat = FrameFormat.Progressive,
             Data = (System.IntPtr)pdata
@@ -132,16 +108,33 @@ sealed class Sender : MonoBehaviour
 
     System.Collections.IEnumerator Start()
     {
+        // Readback completion callback
+        var dims = (x:0, y:0);
+        var complete = new System.Action<AsyncGPUReadbackRequest>
+          ((AsyncGPUReadbackRequest req)
+             => OnCompleteReadback(req, dims.x, dims.y));
+
         for (var eof = new WaitForEndOfFrame(); true;)
         {
-            LazyInitNdiSend();
+            PrepareNdiSend();
 
             yield return eof;
 
-            // Request chain: Capture -> Convert -> Readback
-            ScreenCapture.CaptureScreenshotIntoRenderTexture(GetCaptureRT());
-            var converted = Converter.Encode(_captureRT, _enableAlpha);
-            AsyncGPUReadback.Request(converted, OnCompleteReadback);
+            if (_captureMethod == CaptureMethod.GameView)
+            {
+                // Request chain: Capture -> Convert -> Readback
+                ScreenCapture.CaptureScreenshotIntoRenderTexture(GetCaptureRT());
+                var converted = Converter.Encode(_captureRT, _enableAlpha);
+                dims = (_captureRT.width, _captureRT.height);
+                AsyncGPUReadback.Request(converted, complete);
+            }
+            else if (_captureMethod == CaptureMethod.Texture)
+            {
+                // Request chain: Convert -> Readback
+                var converted = Converter.Encode(_sourceTexture, _enableAlpha);
+                dims = (_sourceTexture.width, _sourceTexture.height);
+                AsyncGPUReadback.Request(converted, complete);
+            }
         }
     }
 
