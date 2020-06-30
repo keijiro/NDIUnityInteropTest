@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d8a3f5df3b94ac243a0b980d53d1c800, type: 3}
-  m_Name: Converter
+  m_Name: PixelFormatConverter
   m_EditorClassIdentifier: 
   _encoderCompute: {fileID: 7200000, guid: f6b8573dcf6ea3a4fa44225fc68728c3, type: 3}
   _decoderCompute: {fileID: 7200000, guid: fbb9f9dd93e2dca48a0993ee1e64a413, type: 3}

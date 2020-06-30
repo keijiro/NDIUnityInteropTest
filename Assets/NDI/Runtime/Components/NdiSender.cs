@@ -4,29 +4,29 @@ using UnityEngine.Rendering;
 
 namespace NDI {
 
-public sealed partial class Sender : MonoBehaviour
+public sealed partial class NdiSender : MonoBehaviour
 {
     #region Internal method (for editor use)
 
     internal void RequestReset()
-      => ReleaseNdiSend();
+      => ReleaseSend();
 
     #endregion
 
     #region Unmanaged NDI object
 
-    NdiSend _ndiSend;
+    Interop.Send _send;
 
-    void PrepareNdiSend()
+    void PrepareSend()
     {
-        if (_ndiSend != null) return;
-        _ndiSend = NdiSend.Create(_ndiName);
+        if (_send != null) return;
+        _send = Interop.Send.Create(_ndiName);
     }
 
-    void ReleaseNdiSend()
+    void ReleaseSend()
     {
-        _ndiSend?.Dispose();
-        _ndiSend = null;
+        _send?.Dispose();
+        _send = null;
     }
 
     #endregion
@@ -130,8 +130,7 @@ public sealed partial class Sender : MonoBehaviour
       (AsyncGPUReadbackRequest request, int width, int height)
     {
         // Ignore it if the NDI object has been already disposed.
-        if (_ndiSend == null || _ndiSend.IsInvalid || _ndiSend.IsClosed)
-            return;
+        if (_send == null || _send.IsInvalid || _send.IsClosed) return;
 
         // Readback data retrieval
         var data = request.GetData<byte>();
@@ -142,18 +141,16 @@ public sealed partial class Sender : MonoBehaviour
             Util.FrameDataCount(width, height, _enableAlpha)) return;
 
         // Frame data setup
-        var frame = new VideoFrame
-        {
-            Width = width,
+        var frame = new Interop.VideoFrame
+          { Width = width,
             Height = height,
             LineStride = width * 2,
-            FourCC = _enableAlpha ? FourCC.UYVA : FourCC.UYVY,
-            FrameFormat = FrameFormat.Progressive,
-            Data = (System.IntPtr)pdata
-        };
+            FourCC = _enableAlpha ? Interop.FourCC.UYVA : Interop.FourCC.UYVY,
+            FrameFormat = Interop.FrameFormat.Progressive,
+            Data = (System.IntPtr)pdata };
 
         // Send via NDI
-        _ndiSend.SendVideoAsync(frame);
+        _send.SendVideoAsync(frame);
     }
 
     #endregion
@@ -181,7 +178,7 @@ public sealed partial class Sender : MonoBehaviour
     void OnDestroy()
     {
         ReleaseConverter();
-        ReleaseNdiSend();
+        ReleaseSend();
     }
 
     System.Collections.IEnumerator Start()
@@ -201,7 +198,7 @@ public sealed partial class Sender : MonoBehaviour
             // Unmanaged NDI object preparation
             // We have to do this every frame because the NDI object could be
             // disposed by renaming.
-            PrepareNdiSend();
+            PrepareSend();
 
             // Wait for the end of the frame.
             yield return eof;

@@ -2,13 +2,13 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
-namespace NDI {
+namespace NDI.Interop {
 
-public class NdiSend : SafeHandleZeroOrMinusOneIsInvalid
+public class Send : SafeHandleZeroOrMinusOneIsInvalid
 {
     #region SafeHandle implementation
 
-    NdiSend() : base(true) {}
+    Send() : base(true) {}
 
     protected override bool ReleaseHandle()
     {
@@ -20,7 +20,7 @@ public class NdiSend : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Public methods
 
-    public static NdiSend Create(string name)
+    public static Send Create(string name)
     {
         var cname = Marshal.StringToHGlobalAnsi(name);
         var settings = new Settings { NdiName = cname };
@@ -46,13 +46,13 @@ public class NdiSend : SafeHandleZeroOrMinusOneIsInvalid
     }
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_create")]
-    static extern NdiSend _Create(in Settings settings);
+    static extern Send _Create(in Settings settings);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_destroy")]
     static extern void _Destroy(IntPtr send);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_send_video_async_v2")]
-    static extern void _SendVideoAsync(NdiSend send, in VideoFrame data);
+    static extern void _SendVideoAsync(Send send, in VideoFrame data);
 
     #endregion
 }

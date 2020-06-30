@@ -4,8 +4,8 @@ using UnityEditor;
 namespace NDI.Editor {
 
 [CanEditMultipleObjects]
-[CustomEditor(typeof(Sender))]
-sealed class SenderEditor : UnityEditor.Editor
+[CustomEditor(typeof(NdiSender))]
+sealed class NdiSenderEditor : UnityEditor.Editor
 {
     SerializedProperty _ndiName;
     SerializedProperty _enableAlpha;

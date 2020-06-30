@@ -4,8 +4,8 @@ using UnityEditor;
 namespace NDI.Editor {
 
 [CanEditMultipleObjects]
-[CustomEditor(typeof(Receiver))]
-sealed class ReceiverEditor : UnityEditor.Editor
+[CustomEditor(typeof(NdiReceiver))]
+sealed class NdiReceiverEditor : UnityEditor.Editor
 {
     SerializedProperty _ndiName;
     SerializedProperty _targetTexture;
@@ -53,7 +53,7 @@ sealed class ReceiverEditor : UnityEditor.Editor
     // Request receiver reconnection.
     void RequestReconnect()
     {
-        foreach (Receiver receiver in targets) receiver.RequestReconnect();
+        foreach (NdiReceiver receiver in targets) receiver.RequestReconnect();
     }
 
     void OnEnable()

@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
-namespace NDI {
+namespace NDI.Interop {
 
 public enum Bandwidth
 {
@@ -22,12 +22,12 @@ public enum ColorFormat
     Fastest = 100
 }
 
-public class NdiRecv : SafeHandleZeroOrMinusOneIsInvalid
+public class Recv : SafeHandleZeroOrMinusOneIsInvalid
 {
     [StructLayoutAttribute(LayoutKind.Sequential)]
     public struct Settings 
     {
-        public NdiSource Source;
+        public Source Source;
         public ColorFormat ColorFormat;
         public Bandwidth Bandwidth;
         [MarshalAsAttribute(UnmanagedType.U1)]
@@ -37,7 +37,7 @@ public class NdiRecv : SafeHandleZeroOrMinusOneIsInvalid
 
     #region SafeHandle implementation
 
-    NdiRecv() : base(true) {}
+    Recv() : base(true) {}
 
     protected override bool ReleaseHandle()
     {
@@ -49,7 +49,7 @@ public class NdiRecv : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Public methods
 
-    public static NdiRecv Create(in Settings settings)
+    public static Recv Create(in Settings settings)
       => _Create(settings);
 
     public VideoFrame? TryCaptureVideoFrame()
@@ -67,17 +67,17 @@ public class NdiRecv : SafeHandleZeroOrMinusOneIsInvalid
     #region Unmanaged interface
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_recv_create_v3")]
-    static extern NdiRecv _Create(in Settings Settings);
+    static extern Recv _Create(in Settings Settings);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_recv_destroy")]
     static extern void _Destroy(IntPtr recv);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_recv_capture_v2")]
-    static extern FrameType _Capture(NdiRecv recv,
+    static extern FrameType _Capture(Recv recv,
       out VideoFrame video, IntPtr audio, IntPtr metadata, uint timeout);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_recv_free_video_v2")]
-    static extern void _FreeVideo(NdiRecv recv, in VideoFrame data);
+    static extern void _FreeVideo(Recv recv, in VideoFrame data);
 
     #endregion
 }

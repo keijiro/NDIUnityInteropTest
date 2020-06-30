@@ -4,7 +4,7 @@ using IntPtr = System.IntPtr;
 
 namespace NDI {
 
-sealed class PixelFormatConverter : ScriptableObject
+public sealed class PixelFormatConverter : ScriptableObject
 {
     #region Common members
 

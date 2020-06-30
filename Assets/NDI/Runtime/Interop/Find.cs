@@ -2,23 +2,13 @@ using System;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
-namespace NDI {
+namespace NDI.Interop {
 
-[StructLayoutAttribute(LayoutKind.Sequential)]
-public struct NdiSource
-{
-    public IntPtr _NdiName;
-    public IntPtr _UrlAddress;
-
-    public string NdiName => Marshal.PtrToStringAnsi(_NdiName);
-    public string UrlAddress => Marshal.PtrToStringAnsi(_UrlAddress);
-}
-
-public class NdiFind : SafeHandleZeroOrMinusOneIsInvalid
+public class Find : SafeHandleZeroOrMinusOneIsInvalid
 {
     #region SafeHandle implementation
 
-    NdiFind() : base(true) {}
+    Find() : base(true) {}
 
     protected override bool ReleaseHandle()
     {
@@ -30,13 +20,13 @@ public class NdiFind : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Public methods
 
-    public static NdiFind Create()
+    public static Find Create()
       => _Create(new Settings { ShowLocalSources = true });
 
-    unsafe public Span<NdiSource> CurrentSources { get {
+    unsafe public Span<Source> CurrentSources { get {
         uint count;
         var array = _GetCurrentSources(this, out count);
-        return new Span<NdiSource>((void*)array, (int)count);
+        return new Span<Source>((void*)array, (int)count);
     } }
 
     #endregion
@@ -52,13 +42,13 @@ public class NdiFind : SafeHandleZeroOrMinusOneIsInvalid
     }
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_find_create_v2")]
-    static extern NdiFind _Create(in Settings settings);
+    static extern Find _Create(in Settings settings);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_find_destroy")]
     static extern void _Destroy(IntPtr find);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_find_get_current_sources")]
-    static extern IntPtr _GetCurrentSources(NdiFind find, out uint count);
+    static extern IntPtr _GetCurrentSources(Find find, out uint count);
 
     #endregion
 }

@@ -2,15 +2,15 @@ namespace NDI {
 
 static class SharedInstance
 {
-    static public NdiFind Find => GetFind();
+    static public Interop.Find Find => GetFind();
 
     static bool _initialized;
-    static NdiFind _ndiFind;
+    static Interop.Find _find;
 
-    static NdiFind GetFind()
+    static Interop.Find GetFind()
     {
         Setup();
-        return _ndiFind;
+        return _find;
     }
 
     static void Setup()
@@ -21,15 +21,15 @@ static class SharedInstance
         UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += OnDomainReload;
     #endif
 
-        _ndiFind = NdiFind.Create();
+        _find = Interop.Find.Create();
 
         _initialized = true;
     }
 
     static void OnDomainReload()
     {
-        _ndiFind?.Dispose();
-        _ndiFind = null;
+        _find?.Dispose();
+        _find = null;
 
         _initialized = false;
     }

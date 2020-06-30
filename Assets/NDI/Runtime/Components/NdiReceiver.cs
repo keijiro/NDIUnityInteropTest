@@ -3,60 +3,60 @@ using UnityEngine;
 
 namespace NDI {
 
-public sealed partial class Receiver : MonoBehaviour
+public sealed partial class NdiReceiver : MonoBehaviour
 {
     #region Internal method (for editor use)
 
     internal void RequestReconnect()
-      => ReleaseNdiRecv();
+      => ReleaseRecv();
 
     #endregion
 
     #region Unmanaged NDI object
 
-    NdiRecv _ndiRecv;
+    Interop.Recv _recv;
 
-    NdiSource? TryGetSource()
+    Interop.Source? TryGetSource()
     {
         foreach (var source in SharedInstance.Find.CurrentSources)
             if (source.NdiName == _ndiName) return source;
         return null;
     }
 
-    unsafe void TryCreateNdiRecv()
+    unsafe void TryCreateRecv()
     {
         // Source search
         var source = TryGetSource();
         if (source == null) return;
 
         // Recv instantiation
-        var opt = new NdiRecv.Settings
-          { Source = (NdiSource)source,
-            ColorFormat = ColorFormat.Fastest,
-            Bandwidth = Bandwidth.Highest };
-        _ndiRecv = NdiRecv.Create(opt);
+        var opt = new Interop.Recv.Settings
+          { Source = (Interop.Source)source,
+            ColorFormat = Interop.ColorFormat.Fastest,
+            Bandwidth = Interop.Bandwidth.Highest };
+        _recv = Interop.Recv.Create(opt);
     }
 
     RenderTexture TryReceiveFrame()
     {
-        var frameOrNull = _ndiRecv.TryCaptureVideoFrame();
+        var frameOrNull = _recv.TryCaptureVideoFrame();
         if (frameOrNull == null) return null;
 
-        var frame = (VideoFrame)frameOrNull;
+        var frame = (Interop.VideoFrame)frameOrNull;
 
         var rt = Converter.Decode
           (frame.Width, frame.Height,
            Util.CheckAlpha(frame.FourCC), frame.Data);
 
-        _ndiRecv.FreeVideoFrame(frame);
+        _recv.FreeVideoFrame(frame);
 
         return rt;
     }
 
-    void ReleaseNdiRecv()
+    void ReleaseRecv()
     {
-        _ndiRecv?.Dispose();
-        _ndiRecv = null;
+        _recv?.Dispose();
+        _recv = null;
     }
 
     #endregion
@@ -111,16 +111,16 @@ public sealed partial class Receiver : MonoBehaviour
     void OnDestroy()
     {
         ReleaseConverter();
-        ReleaseNdiRecv();
+        ReleaseRecv();
     }
 
     void Update()
     {
-        if (_ndiRecv == null)
+        if (_recv == null)
         {
-            TryCreateNdiRecv();
+            TryCreateRecv();
             // We don't expect that we can get the first frame right now,
-            // so return even if we successfully created the NdiRecv instance.
+            // so return even if we successfully created the recv instance.
             return;
         }
 

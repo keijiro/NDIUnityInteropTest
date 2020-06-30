@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace NDI {
 
-partial class Receiver
+partial class NdiReceiver
 {
     #region NDI source settings
 

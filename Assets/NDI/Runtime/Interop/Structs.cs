@@ -1,9 +1,17 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace NDI {
+namespace NDI.Interop {
 
-public enum FrameFormat { Interleaved, Progressive, Field0, Field1 }
+public enum FrameType
+{
+    None = 0,
+    Video = 1,
+    Audio = 2,
+    Metadata = 3,
+    Error = 4,
+    StatusChange = 100
+}
 
 public enum FourCC
 {
@@ -18,14 +26,22 @@ public enum FourCC
     UYVA = 0x41565955
 }
 
-public enum FrameType
+public enum FrameFormat
 {
-    None = 0,
-    Video = 1,
-    Audio = 2,
-    Metadata = 3,
-    Error = 4,
-    StatusChange = 100
+    Interleaved,
+    Progressive,
+    Field0,
+    Field1
+}
+
+[StructLayoutAttribute(LayoutKind.Sequential)]
+public struct Source
+{
+    public IntPtr _NdiName;
+    public IntPtr _UrlAddress;
+
+    public string NdiName => Marshal.PtrToStringAnsi(_NdiName);
+    public string UrlAddress => Marshal.PtrToStringAnsi(_UrlAddress);
 }
 
 [StructLayoutAttribute(LayoutKind.Sequential)]

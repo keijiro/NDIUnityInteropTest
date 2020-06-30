@@ -1,4 +1,4 @@
-namespace NDI
+namespace NDI.Interop
 {
     static class Config
     {
