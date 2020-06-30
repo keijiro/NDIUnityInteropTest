@@ -50,42 +50,65 @@ sealed partial class Sender : MonoBehaviour
 
     #endregion
 
-    #region Render texture for screen capture
+    #region Capture method implementations
 
-    RenderTexture _captureRT;
-
-    RenderTexture GetCaptureRT()
+    // Capture method: Game View
+    (ComputeBuffer converted, int width, int height) CaptureGameView()
     {
-        if (_captureRT != null) return _captureRT;
-
-        _captureRT = new RenderTexture
+        // Temporary RT allocation for the capture.
+        var rt = RenderTexture.GetTemporary
           (Screen.width, Screen.height, 0,
-           RenderTextureFormat.ARGB32,
-           RenderTextureReadWrite.Linear);
+           RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 
-        return _captureRT;
+        // Capture and pixel format conversion
+        ScreenCapture.CaptureScreenshotIntoRenderTexture(rt);
+        var converted = Converter.Encode(rt, _enableAlpha);
+
+        // Temporary RT deallocation
+        RenderTexture.ReleaseTemporary(rt);
+
+        return (converted, Screen.width, Screen.height);
     }
 
-    void ReleaseCaptureRT()
+    // Capture method: Texture
+    (ComputeBuffer converted, int width, int height) CaptureSourceTexture()
     {
-        if (_captureRT == null) return;
-        Destroy(_captureRT);
-        _captureRT = null;
+        // Simply convert the given texture.
+        var converted = Converter.Encode(_sourceTexture, _enableAlpha);
+
+        return (converted, _sourceTexture.width, _sourceTexture.height);
+    }
+
+    (ComputeBuffer converted, int width, int height) InvokeCaptureMethod()
+    {
+        if (_captureMethod == CaptureMethod.GameView)
+            return CaptureGameView();
+
+        if (_captureMethod == CaptureMethod.Texture)
+            return CaptureSourceTexture();
+
+        // CaptureMethod.Camera
+        return (null, 0, 0);
     }
 
     #endregion
 
-    #region Readback completion
+    #region GPU readback completion callback
 
     unsafe void OnCompleteReadback
       (AsyncGPUReadbackRequest request, int width, int height)
     {
+        // Ignore it if the NDI object has been already disposed.
         if (_ndiSend == null || _ndiSend.IsInvalid || _ndiSend.IsClosed)
             return;
 
-        // Raw pointer retrieval
-        var pdata = NativeArrayUnsafeUtility.
-          GetUnsafeReadOnlyPtr(request.GetData<byte>());
+        // Readback data retrieval
+        var data = request.GetData<byte>();
+        var pdata = NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(data);
+
+        // Data size verification
+        if (data.Length / sizeof(uint) !=
+            Util.FrameDataCount(width, height, _enableAlpha)) return;
 
         // Frame data setup
         var frame = new VideoFrame
@@ -108,33 +131,33 @@ sealed partial class Sender : MonoBehaviour
 
     System.Collections.IEnumerator Start()
     {
-        // Readback completion callback
-        var dims = (x:0, y:0);
+        // A temporary Action object for the GPU readback completion callback.
+        // It's needed to avoid GC allocations in AsyncGPUReadback.Request.
+        // The variables captured from the lambda function (width/height)
+        // are updated in the following for-loop.
+        var width = 0;
+        var height = 0;
         var complete = new System.Action<AsyncGPUReadbackRequest>
           ((AsyncGPUReadbackRequest req)
-             => OnCompleteReadback(req, dims.x, dims.y));
+             => OnCompleteReadback(req, width, height));
 
         for (var eof = new WaitForEndOfFrame(); true;)
         {
+            // Unmanaged NDI object preparation
+            // We have to do this every frame because the NDI object could be
+            // disposed by renaming.
             PrepareNdiSend();
 
+            // Wait for the end of the frame.
             yield return eof;
 
-            if (_captureMethod == CaptureMethod.GameView)
-            {
-                // Request chain: Capture -> Convert -> Readback
-                ScreenCapture.CaptureScreenshotIntoRenderTexture(GetCaptureRT());
-                var converted = Converter.Encode(_captureRT, _enableAlpha);
-                dims = (_captureRT.width, _captureRT.height);
+            // Capture and conversion
+            var converted = (ComputeBuffer)null;
+            (converted, width, height) = InvokeCaptureMethod();
+
+            // GPU readback request
+            if (converted != null)
                 AsyncGPUReadback.Request(converted, complete);
-            }
-            else if (_captureMethod == CaptureMethod.Texture)
-            {
-                // Request chain: Convert -> Readback
-                var converted = Converter.Encode(_sourceTexture, _enableAlpha);
-                dims = (_sourceTexture.width, _sourceTexture.height);
-                AsyncGPUReadback.Request(converted, complete);
-            }
         }
     }
 
@@ -142,7 +165,6 @@ sealed partial class Sender : MonoBehaviour
     {
         ReleaseConverter();
         ReleaseNdiSend();
-        ReleaseCaptureRT();
     }
 
     #endregion
