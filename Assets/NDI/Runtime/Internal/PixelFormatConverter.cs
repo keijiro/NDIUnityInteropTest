@@ -11,6 +11,7 @@ sealed class PixelFormatConverter : ScriptableObject
     ComputeBuffer _encoderOutput;
 
     ComputeBuffer _decoderInput;
+    ComputeDataSetter _decoderSetter;
     RenderTexture _decoderOutput;
 
     void OnDisable()
@@ -80,7 +81,10 @@ sealed class PixelFormatConverter : ScriptableObject
 
         // Input buffer allocation
         if (_decoderInput == null)
+        {
             _decoderInput = new ComputeBuffer(dataCount, 4);
+            _decoderSetter = new ComputeDataSetter(_decoderInput);
+        }
 
         // Output buffer allocation
         if (_decoderOutput == null)
@@ -94,7 +98,7 @@ sealed class PixelFormatConverter : ScriptableObject
         }
 
         // Input buffer update
-        _decoderInput.SetData(data, dataCount, 4);
+        _decoderSetter.SetData(data, dataCount, 4);
 
         // Decoder compute dispatching
         var pass = enableAlpha ? 1 : 0;

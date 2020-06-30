@@ -1,5 +1,6 @@
-using System.Reflection;
 using UnityEngine;
+using BindingFlags = System.Reflection.BindingFlags;
+using Delegate = System.Delegate;
 using IntPtr = System.IntPtr;
 
 namespace NDI
@@ -18,31 +19,26 @@ namespace NDI
     // Intptr. This is not a public interface so will be broken one day.
     // DO NOT TRY AT HOME.
     //
-    static class ComputeBufferUnmanagedExtension
+    class ComputeDataSetter
     {
-        static MethodInfo _method;
+        delegate void SetDataDelegate
+          (IntPtr pointer, int s_offs, int d_offs, int count, int stride);
 
-        static MethodInfo Method
-          => _method ?? (_method = GetMethod());
+        SetDataDelegate _setData;
 
-        static MethodInfo GetMethod()
-          => typeof(ComputeBuffer).GetMethod("InternalSetNativeData",
-                                             BindingFlags.InvokeMethod |
-                                             BindingFlags.NonPublic |
-                                             BindingFlags.Instance);
-
-        static object [] _args5 = new object[5];
-
-        public static void SetData
-          (this ComputeBuffer buffer, IntPtr pointer, int count, int stride)
+        public ComputeDataSetter(ComputeBuffer buffer)
         {
-            _args5[0] = pointer;
-            _args5[1] = 0;      // source offset
-            _args5[2] = 0;      // buffer offset
-            _args5[3] = count;
-            _args5[4] = stride;
+            var method = typeof(ComputeBuffer).GetMethod
+              ("InternalSetNativeData",
+               BindingFlags.InvokeMethod |
+               BindingFlags.NonPublic |
+               BindingFlags.Instance);
 
-            Method.Invoke(buffer, _args5);
+            _setData = (SetDataDelegate)Delegate.CreateDelegate
+              (typeof(SetDataDelegate), buffer, method);
         }
+
+        public void SetData(IntPtr pointer, int count, int stride)
+          => _setData(pointer, 0, 0, count, stride);
     }
 }
