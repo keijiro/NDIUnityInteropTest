@@ -47,6 +47,12 @@ partial class NdiSender
         set => _sourceTexture = value; }
 
     #endregion
+
+    #region Resources asset reference
+
+    [SerializeField, HideInInspector] NdiResources _resources = null;
+
+    #endregion
 }
 
 }

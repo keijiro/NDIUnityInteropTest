@@ -1,11 +1,12 @@
 fileFormatVersion: 2
-guid: d2d98e5bfcdff4847ad69efa861a8e7f
+guid: 2a09ab5fc64402d49b12d170a7577986
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
-  - _defaultConverter: {fileID: 11400000, guid: 1e53851a243f40440b036405ae12b0bd,
-      type: 2}
+  - _targetTexture: {instanceID: 0}
+  - _targetRenderer: {instanceID: 0}
+  - _resources: {fileID: 11400000, guid: 69304b86950074db7ba8caba75214004, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

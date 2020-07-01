@@ -41,6 +41,12 @@ partial class NdiReceiver
         set => _targetMaterialProperty = value; }
 
     #endregion
+
+    #region Resources asset reference
+
+    [SerializeField, HideInInspector] NdiResources _resources = null;
+
+    #endregion
 }
 
 }

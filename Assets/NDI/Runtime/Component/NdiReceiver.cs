@@ -63,19 +63,15 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     #region Pixel format converter object
 
-    [SerializeField] PixelFormatConverter _defaultConverter = null;
-
-    PixelFormatConverter _converterInstance;
+    PixelFormatConverter _converter;
 
     PixelFormatConverter Converter
-      => _converterInstance ??
-         (_converterInstance = Instantiate(_defaultConverter));
+      => _converter ?? (_converter = new PixelFormatConverter(_resources));
 
     void ReleaseConverter()
     {
-        if (_converterInstance == null) return;
-        Destroy(_converterInstance);
-        _converterInstance = null;
+        _converter?.Dispose();
+        _converter = null;
     }
 
     #endregion
@@ -107,6 +103,9 @@ public sealed partial class NdiReceiver : MonoBehaviour
     #endregion
 
     #region MonoBehaviour implementation
+
+    void OnDisable()
+      => ReleaseConverter();
 
     void OnDestroy()
     {

@@ -4,6 +4,8 @@ using UnityEngine.Rendering;
 
 namespace NDI {
 
+public enum CaptureMethod { GameView, Camera, Texture }
+
 public sealed partial class NdiSender : MonoBehaviour
 {
     #region Internal method (for editor use)
@@ -33,19 +35,15 @@ public sealed partial class NdiSender : MonoBehaviour
 
     #region Pixel format converter object
 
-    [SerializeField] PixelFormatConverter _defaultConverter = null;
-
-    PixelFormatConverter _converterInstance;
+    PixelFormatConverter _converter;
 
     PixelFormatConverter Converter
-      => _converterInstance ??
-         (_converterInstance = Instantiate(_defaultConverter));
+      => _converter ?? (_converter = new PixelFormatConverter(_resources));
 
     void ReleaseConverter()
     {
-        if (_converterInstance == null) return;
-        Destroy(_converterInstance);
-        _converterInstance = null;
+        _converter?.Dispose();
+        _converter = null;
     }
 
     #endregion
@@ -157,23 +155,24 @@ public sealed partial class NdiSender : MonoBehaviour
 
     #region MonoBehaviour implementation
 
-    #if NDI_HAS_SRP
-
     void OnEnable()
     {
+    #if NDI_HAS_SRP
         if (_captureMethod == CaptureMethod.Camera)
             CameraCaptureBridge.AddCaptureAction
               (_sourceCamera, OnCameraCapture);
+    #endif
     }
 
     void OnDisable()
     {
+        ReleaseConverter();
+    #if NDI_HAS_SRP
         if (_captureMethod == CaptureMethod.Camera)
             CameraCaptureBridge.RemoveCaptureAction
               (_sourceCamera, OnCameraCapture);
-    }
-
     #endif
+    }
 
     void OnDestroy()
     {

@@ -150,12 +150,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2d98e5bfcdff4847ad69efa861a8e7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _defaultConverter: {fileID: 11400000, guid: 1e53851a243f40440b036405ae12b0bd, type: 2}
   _ndiName: Game View
   _enableAlpha: 1
   _captureMethod: 0
   _sourceCamera: {fileID: 0}
   _sourceTexture: {fileID: 0}
+  _resources: {fileID: 11400000, guid: 69304b86950074db7ba8caba75214004, type: 2}
 --- !u!4 &150476826
 Transform:
   m_ObjectHideFlags: 0
@@ -371,11 +371,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a09ab5fc64402d49b12d170a7577986, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _defaultConverter: {fileID: 11400000, guid: 1e53851a243f40440b036405ae12b0bd, type: 2}
   _ndiName: SKYREACH (Shutter)
   _targetTexture: {fileID: 0}
   _targetRenderer: {fileID: 1464266393}
   _targetMaterialProperty: _BaseMap
+  _resources: {fileID: 11400000, guid: 69304b86950074db7ba8caba75214004, type: 2}
 --- !u!1 &1169721529
 GameObject:
   m_ObjectHideFlags: 0
@@ -657,12 +657,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2d98e5bfcdff4847ad69efa861a8e7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _defaultConverter: {fileID: 11400000, guid: 1e53851a243f40440b036405ae12b0bd, type: 2}
   _ndiName: Shutter
   _enableAlpha: 1
   _captureMethod: 1
   _sourceCamera: {fileID: 1895680588}
   _sourceTexture: {fileID: 2800000, guid: 2682ac2edf3e7c0e3a11a7bbd33f5ab2, type: 3}
+  _resources: {fileID: 11400000, guid: 69304b86950074db7ba8caba75214004, type: 2}
 --- !u!1 &1885545640
 GameObject:
   m_ObjectHideFlags: 0

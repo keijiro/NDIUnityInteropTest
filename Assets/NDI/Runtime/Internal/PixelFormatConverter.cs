@@ -4,33 +4,26 @@ using IntPtr = System.IntPtr;
 
 namespace NDI {
 
-public sealed class PixelFormatConverter : ScriptableObject
+sealed class PixelFormatConverter : System.IDisposable
 {
     #region Common members
 
-    [SerializeField] ComputeShader _encoderCompute = null;
-    [SerializeField] ComputeShader _decoderCompute = null;
+    NdiResources _resources;
 
-    ComputeBuffer _encoderOutput;
+    public PixelFormatConverter(NdiResources resources)
+      => _resources = resources;
 
-    ComputeBuffer _decoderInput;
-    ComputeDataSetter _decoderSetter;
-    RenderTexture _decoderOutput;
-
-    void OnDisable()
+    public void Dispose()
     {
         _encoderOutput?.Dispose();
         _encoderOutput = null;
 
         _decoderInput?.Dispose();
         _decoderInput = null;
-    }
 
-    void OnDestroy()
-    {
         if (_decoderOutput != null)
         {
-            Destroy(_decoderOutput);
+            Object.Destroy(_decoderOutput);
             _decoderOutput = null;
         }
     }
@@ -38,6 +31,8 @@ public sealed class PixelFormatConverter : ScriptableObject
     #endregion
 
     #region Encoder implementation
+
+    ComputeBuffer _encoderOutput;
 
     // Immediate mode version
     public ComputeBuffer Encode(Texture source, bool enableAlpha)
@@ -58,10 +53,11 @@ public sealed class PixelFormatConverter : ScriptableObject
             _encoderOutput = new ComputeBuffer(dataCount, 4);
 
         // Compute thread dispatching
+        var compute = _resources.encoderCompute;
         var pass = enableAlpha ? 1 : 0;
-        _encoderCompute.SetTexture(pass, "Source", source);
-        _encoderCompute.SetBuffer(pass, "Destination", _encoderOutput);
-        _encoderCompute.Dispatch(pass, width / 16, height / 8, 1);
+        compute.SetTexture(pass, "Source", source);
+        compute.SetBuffer(pass, "Destination", _encoderOutput);
+        compute.Dispatch(pass, width / 16, height / 8, 1);
 
         return _encoderOutput;
     }
@@ -85,11 +81,11 @@ public sealed class PixelFormatConverter : ScriptableObject
             _encoderOutput = new ComputeBuffer(dataCount, 4);
 
         // Compute thread dispatching
+        var compute = _resources.encoderCompute;
         var pass = enableAlpha ? 1 : 0;
-        cb.SetComputeTextureParam(_encoderCompute, pass, "Source", source);
-        cb.SetComputeBufferParam
-          (_encoderCompute, pass, "Destination", _encoderOutput);
-        cb.DispatchCompute(_encoderCompute, pass, width / 16, height / 8, 1);
+        cb.SetComputeTextureParam(compute, pass, "Source", source);
+        cb.SetComputeBufferParam(compute, pass, "Destination", _encoderOutput);
+        cb.DispatchCompute(compute, pass, width / 16, height / 8, 1);
 
         return _encoderOutput;
     }
@@ -97,6 +93,10 @@ public sealed class PixelFormatConverter : ScriptableObject
     #endregion
 
     #region Decoder implementation
+
+    ComputeBuffer _decoderInput;
+    ComputeDataSetter _decoderSetter;
+    RenderTexture _decoderOutput;
 
     public RenderTexture
       Decode(int width, int height, bool enableAlpha, IntPtr data)
@@ -115,7 +115,7 @@ public sealed class PixelFormatConverter : ScriptableObject
             (_decoderOutput.width != width ||
              _decoderOutput.height != height))
         {
-            Destroy(_decoderOutput);
+            Object.Destroy(_decoderOutput);
             _decoderOutput = null;
         }
 
@@ -141,10 +141,11 @@ public sealed class PixelFormatConverter : ScriptableObject
         _decoderSetter.SetData(data, dataCount, 4);
 
         // Decoder compute dispatching
+        var compute = _resources.decoderCompute;
         var pass = enableAlpha ? 1 : 0;
-        _decoderCompute.SetBuffer(pass, "Source", _decoderInput);
-        _decoderCompute.SetTexture(pass, "Destination", _decoderOutput);
-        _decoderCompute.Dispatch(pass, width / 16, height / 8, 1);
+        compute.SetBuffer(pass, "Source", _decoderInput);
+        compute.SetTexture(pass, "Destination", _decoderOutput);
+        compute.Dispatch(pass, width / 16, height / 8, 1);
 
         return _decoderOutput;
     }
