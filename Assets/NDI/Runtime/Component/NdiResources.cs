@@ -6,6 +6,5 @@ namespace NDI
     {
         public ComputeShader encoderCompute;
         public ComputeShader decoderCompute;
-        public Shader blitShader;
     }
 }

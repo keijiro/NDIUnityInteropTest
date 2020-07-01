@@ -14,4 +14,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   encoderCompute: {fileID: 7200000, guid: f6b8573dcf6ea3a4fa44225fc68728c3, type: 3}
   decoderCompute: {fileID: 7200000, guid: fbb9f9dd93e2dca48a0993ee1e64a413, type: 3}
-  blitShader: {fileID: 4800000, guid: 4c425f54b8576fc42956d9055b23bfb2, type: 3}
