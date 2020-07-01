@@ -106,7 +106,7 @@ public sealed partial class NdiSender : MonoBehaviour
            RenderTextureReadWrite.Linear, 1, false);
 
         // Blit to the temporary RT
-        cb.Blit(source, tempRT);
+        cb.Blit(source, tempRT, new Vector2(1, -1), new Vector2(0, 1));
 
         // Pixel format conversion
         var converted =
