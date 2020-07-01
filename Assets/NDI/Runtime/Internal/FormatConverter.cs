@@ -4,13 +4,13 @@ using IntPtr = System.IntPtr;
 
 namespace NDI {
 
-sealed class PixelFormatConverter : System.IDisposable
+sealed class FormatConverter : System.IDisposable
 {
     #region Common members
 
     NdiResources _resources;
 
-    public PixelFormatConverter(NdiResources resources)
+    public FormatConverter(NdiResources resources)
       => _resources = resources;
 
     public void Dispose()

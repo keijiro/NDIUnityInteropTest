@@ -4,6 +4,7 @@ using UnityEngine.Rendering;
 
 namespace NDI {
 
+[ExecuteInEditMode]
 public sealed partial class NdiSender : MonoBehaviour
 {
     #region Editor interface
@@ -14,25 +15,16 @@ public sealed partial class NdiSender : MonoBehaviour
 
     #region Internal objects
 
-    int _sourceWidth;
-    int _sourceHeight;
-
+    int _width, _height;
     Interop.Send _send;
-    PixelFormatConverter _converter;
-
-    System.Action<AsyncGPUReadbackRequest> _onCompleteReadback;
+    FormatConverter _converter;
+    System.Action<AsyncGPUReadbackRequest> _onReadback;
 
     void PrepareInternalObjects()
     {
-        if (_send == null)
-            _send = Interop.Send.Create(_ndiName);
-
-        if (_converter == null)
-            _converter = new PixelFormatConverter(_resources);
-
-        if (_onCompleteReadback == null)
-            _onCompleteReadback =
-              new System.Action<AsyncGPUReadbackRequest>(OnCompleteReadback);
+        if (_send == null) _send = Interop.Send.Create(_ndiName);
+        if (_converter == null) _converter = new FormatConverter(_resources);
+        if (_onReadback == null) _onReadback = OnReadback;
     }
 
     void ReleaseInternalObjects()
@@ -56,8 +48,8 @@ public sealed partial class NdiSender : MonoBehaviour
         // Simply convert the source texture and return it.
         if (_captureMethod == CaptureMethod.Texture)
         {
-            _sourceWidth = _sourceTexture.width;
-            _sourceHeight = _sourceTexture.height;
+            _width = _sourceTexture.width;
+            _height = _sourceTexture.height;
             return _converter.Encode(_sourceTexture, _enableAlpha);
         }
 
@@ -65,11 +57,11 @@ public sealed partial class NdiSender : MonoBehaviour
         // Capture the screen into a temporary RT, then convert it.
         if (_captureMethod == CaptureMethod.GameView)
         {
-            _sourceWidth = Screen.width;
-            _sourceHeight = Screen.height;
+            _width = Screen.width;
+            _height = Screen.height;
 
             var tempRT = RenderTexture.GetTemporary
-              (_sourceWidth, _sourceHeight, 0,
+              (_width, _height, 0,
                RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 
             ScreenCapture.CaptureScreenshotIntoRenderTexture(tempRT);
@@ -83,6 +75,19 @@ public sealed partial class NdiSender : MonoBehaviour
         return null;
     }
 
+    // Capture coroutine: At the end of every frames, it captures the source
+    // frame, convert it to the NDI frame format, then request GPU readback.
+    System.Collections.IEnumerator ImmediateCaptureCoroutine()
+    {
+        for (var eof = new WaitForEndOfFrame(); true;)
+        {
+            yield return eof;
+            if (!enabled) yield break;
+            if (_captureMethod != CaptureMethod.Camera)
+                AsyncGPUReadback.Request(CaptureImmediate(), _onReadback);
+        }
+    }
+
     #endregion
 
     #region SRP camera capture callback
@@ -91,13 +96,13 @@ public sealed partial class NdiSender : MonoBehaviour
     {
         PrepareInternalObjects();
 
-        _sourceWidth = _sourceCamera.pixelWidth;
-        _sourceHeight = _sourceCamera.pixelHeight;
+        _width = _sourceCamera.pixelWidth;
+        _height = _sourceCamera.pixelHeight;
 
         // Temporary RT allocation
         var tempRT = Shader.PropertyToID("_TemporaryRT");
         cb.GetTemporaryRT
-          (tempRT, _sourceWidth, _sourceHeight, 0,
+          (tempRT, _width, _height, 0,
            FilterMode.Bilinear, RenderTextureFormat.ARGB32,
            RenderTextureReadWrite.Linear, 1, false);
 
@@ -106,19 +111,19 @@ public sealed partial class NdiSender : MonoBehaviour
 
         // Pixel format conversion
         var converted = _converter.Encode
-          (cb, tempRT, _sourceWidth, _sourceHeight, _enableAlpha);
+          (cb, tempRT, _width, _height, _enableAlpha);
 
         cb.ReleaseTemporaryRT(tempRT);
 
         // GPU readback request
-        cb.RequestAsyncReadback(converted, _onCompleteReadback);
+        cb.RequestAsyncReadback(converted, _onReadback);
     }
 
     #endregion
 
     #region GPU readback completion callback
 
-    unsafe void OnCompleteReadback(AsyncGPUReadbackRequest request)
+    unsafe void OnReadback(AsyncGPUReadbackRequest request)
     {
         // Ignore it if the NDI object has been already disposed.
         if (_send == null || _send.IsInvalid || _send.IsClosed) return;
@@ -129,14 +134,14 @@ public sealed partial class NdiSender : MonoBehaviour
 
         // Data size verification
         if (data.Length / sizeof(uint) !=
-            Util.FrameDataCount(_sourceWidth, _sourceHeight, _enableAlpha))
+            Util.FrameDataCount(_width, _height, _enableAlpha))
             return;
 
         // Frame data setup
         var frame = new Interop.VideoFrame
-          { Width = _sourceWidth,
-            Height = _sourceHeight,
-            LineStride = _sourceWidth * 2,
+          { Width = _width,
+            Height = _height,
+            LineStride = _width * 2,
             FourCC = _enableAlpha ? Interop.FourCC.UYVA : Interop.FourCC.UYVY,
             FrameFormat = Interop.FrameFormat.Progressive,
             Data = (System.IntPtr)pdata };
@@ -151,6 +156,8 @@ public sealed partial class NdiSender : MonoBehaviour
 
     void OnEnable()
     {
+        StartCoroutine(ImmediateCaptureCoroutine());
+
     #if NDI_HAS_SRP
         if (_captureMethod == CaptureMethod.Camera)
             CameraCaptureBridge.AddCaptureAction
@@ -160,6 +167,7 @@ public sealed partial class NdiSender : MonoBehaviour
 
     void OnDisable()
     {
+        StopAllCoroutines();
         ReleaseInternalObjects();
 
     #if NDI_HAS_SRP
@@ -170,20 +178,6 @@ public sealed partial class NdiSender : MonoBehaviour
     }
 
     void OnDestroy() => ReleaseInternalObjects();
-
-    System.Collections.IEnumerator Start()
-    {
-        // Capture coroutine: At the end of every frames, it captures the
-        // source frame, convert it to the NDI frame format, then request
-        // GPU readback. Note that it's only done in immediate-mode methods
-        // (GameView and Texture).
-        for (var eof = new WaitForEndOfFrame(); true;)
-        {
-            yield return eof;
-            if (_captureMethod != CaptureMethod.Camera)
-                AsyncGPUReadback.Request(CaptureImmediate(), _onCompleteReadback);
-        }
-    }
 
     #endregion
 }

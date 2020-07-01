@@ -63,10 +63,10 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     #region Pixel format converter object
 
-    PixelFormatConverter _converter;
+    FormatConverter _converter;
 
-    PixelFormatConverter Converter
-      => _converter ?? (_converter = new PixelFormatConverter(_resources));
+    FormatConverter Converter
+      => _converter ?? (_converter = new FormatConverter(_resources));
 
     void ReleaseConverter()
     {

@@ -32,9 +32,12 @@ sealed class NdiSenderEditor : UnityEditor.Editor
     {
         serializedObject.Update();
 
-        EditorGUILayout.PropertyField(_ndiName, Styles.NdiName);
-        EditorGUILayout.PropertyField(_enableAlpha);
+        EditorGUI.BeginChangeCheck();
+        EditorGUILayout.DelayedTextField(_ndiName, Styles.NdiName);
+        if (EditorGUI.EndChangeCheck())
+            foreach (NdiSender ns in targets) ns.RequestReset();
 
+        EditorGUILayout.PropertyField(_enableAlpha);
         EditorGUILayout.PropertyField(_captureMethod);
 
         EditorGUI.indentLevel++;
