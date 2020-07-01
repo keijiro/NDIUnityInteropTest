@@ -2,7 +2,9 @@ using UnityEngine;
 
 namespace NDI {
 
-partial class NdiSender
+public enum CaptureMethod { GameView, Camera, Texture }
+
+public sealed partial class NdiSender : MonoBehaviour
 {
     #region NDI source settings
 
