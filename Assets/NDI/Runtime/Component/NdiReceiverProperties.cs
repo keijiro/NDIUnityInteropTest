@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace NDI {
 
-partial class NdiReceiver
+public sealed partial class NdiReceiver : MonoBehaviour
 {
     #region NDI source settings
 
@@ -15,7 +15,7 @@ partial class NdiReceiver
     void SetNdiName(string name)
     {
         _ndiName = name;
-        RequestReconnect();
+        RequestReset();
     }
 
     #endregion

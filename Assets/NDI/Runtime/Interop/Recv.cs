@@ -52,12 +52,9 @@ public class Recv : SafeHandleZeroOrMinusOneIsInvalid
     public static Recv Create(in Settings settings)
       => _Create(settings);
 
-    public VideoFrame? TryCaptureVideoFrame()
-    {
-        VideoFrame video;
-        var type = _Capture(this, out video, IntPtr.Zero, IntPtr.Zero, 0);
-        return type == FrameType.Video ? (VideoFrame?)video : null;
-    }
+    public FrameType Capture
+      (out VideoFrame video, IntPtr audio, IntPtr metadata, uint timeout)
+      => _Capture(this, out video, audio, metadata, timeout);
 
     public void FreeVideoFrame(in VideoFrame frame)
       => _FreeVideo(this, frame);

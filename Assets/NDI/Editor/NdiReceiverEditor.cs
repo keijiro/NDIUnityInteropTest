@@ -53,7 +53,7 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
     // Request receiver reconnection.
     void RequestReconnect()
     {
-        foreach (NdiReceiver receiver in targets) receiver.RequestReconnect();
+        foreach (NdiReceiver receiver in targets) receiver.RequestReset();
     }
 
     void OnEnable()

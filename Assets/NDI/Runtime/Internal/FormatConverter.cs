@@ -10,10 +10,11 @@ sealed class FormatConverter : System.IDisposable
 
     NdiResources _resources;
 
-    public FormatConverter(NdiResources resources)
-      => _resources = resources;
+    public FormatConverter(NdiResources resources) => _resources = resources;
 
-    public void Dispose()
+    public void Dispose() => ReleaseBuffers();
+
+    void ReleaseBuffers()
     {
         _encoderOutput?.Dispose();
         _encoderOutput = null;
@@ -23,7 +24,10 @@ sealed class FormatConverter : System.IDisposable
 
         if (_decoderOutput != null)
         {
-            Object.Destroy(_decoderOutput);
+            if (Application.isPlaying)
+                Object.Destroy(_decoderOutput);
+            else
+                Object.DestroyImmediate(_decoderOutput);
             _decoderOutput = null;
         }
     }
@@ -43,10 +47,7 @@ sealed class FormatConverter : System.IDisposable
 
         // Reallocate the output buffer when the output size was changed.
         if (_encoderOutput != null && _encoderOutput.count != dataCount)
-        {
-            _encoderOutput.Dispose();
-            _encoderOutput = null;
-        }
+            ReleaseBuffers();
 
         // Output buffer allocation
         if (_encoderOutput == null)
@@ -71,10 +72,7 @@ sealed class FormatConverter : System.IDisposable
 
         // Reallocate the output buffer when the output size was changed.
         if (_encoderOutput != null && _encoderOutput.count != dataCount)
-        {
-            _encoderOutput.Dispose();
-            _encoderOutput = null;
-        }
+            ReleaseBuffers();
 
         // Output buffer allocation
         if (_encoderOutput == null)
@@ -105,19 +103,13 @@ sealed class FormatConverter : System.IDisposable
 
         // Reallocate the input buffer when the input size was changed.
         if (_decoderInput != null && _decoderInput.count != dataCount)
-        {
-            _decoderInput.Dispose();
-            _decoderInput = null;
-        }
+            ReleaseBuffers();
 
         // Reallocate the output buffer when the output size was changed.
         if (_decoderOutput != null &&
             (_decoderOutput.width != width ||
              _decoderOutput.height != height))
-        {
-            Object.Destroy(_decoderOutput);
-            _decoderOutput = null;
-        }
+            ReleaseBuffers();
 
         // Input buffer allocation
         if (_decoderInput == null)

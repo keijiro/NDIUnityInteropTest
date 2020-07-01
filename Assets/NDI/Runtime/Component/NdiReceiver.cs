@@ -3,132 +3,86 @@ using UnityEngine;
 
 namespace NDI {
 
+[ExecuteInEditMode]
 public sealed partial class NdiReceiver : MonoBehaviour
 {
     #region Internal method (for editor use)
 
-    internal void RequestReconnect()
-      => ReleaseRecv();
+    internal void RequestReset() => ReleaseInternalObjects();
 
     #endregion
 
-    #region Unmanaged NDI object
+    #region Internal objects
 
     Interop.Recv _recv;
+    FormatConverter _converter;
+    MaterialPropertyBlock _override;
 
-    Interop.Source? TryGetSource()
+    void PrepareInternalObjects()
     {
-        foreach (var source in SharedInstance.Find.CurrentSources)
-            if (source.NdiName == _ndiName) return source;
-        return null;
+        if (_recv == null) _recv = RecvHelper.TryCreateRecv(_ndiName);
+        if (_converter == null) _converter = new FormatConverter(_resources);
+        if (_override == null) _override = new MaterialPropertyBlock();
     }
 
-    unsafe void TryCreateRecv()
-    {
-        // Source search
-        var source = TryGetSource();
-        if (source == null) return;
-
-        // Recv instantiation
-        var opt = new Interop.Recv.Settings
-          { Source = (Interop.Source)source,
-            ColorFormat = Interop.ColorFormat.Fastest,
-            Bandwidth = Interop.Bandwidth.Highest };
-        _recv = Interop.Recv.Create(opt);
-    }
-
-    RenderTexture TryReceiveFrame()
-    {
-        var frameOrNull = _recv.TryCaptureVideoFrame();
-        if (frameOrNull == null) return null;
-
-        var frame = (Interop.VideoFrame)frameOrNull;
-
-        var rt = Converter.Decode
-          (frame.Width, frame.Height,
-           Util.CheckAlpha(frame.FourCC), frame.Data);
-
-        _recv.FreeVideoFrame(frame);
-
-        return rt;
-    }
-
-    void ReleaseRecv()
+    void ReleaseInternalObjects()
     {
         _recv?.Dispose();
         _recv = null;
-    }
 
-    #endregion
-
-    #region Pixel format converter object
-
-    FormatConverter _converter;
-
-    FormatConverter Converter
-      => _converter ?? (_converter = new FormatConverter(_resources));
-
-    void ReleaseConverter()
-    {
         _converter?.Dispose();
         _converter = null;
     }
 
     #endregion
 
-    #region Output method implementations
+    #region Receiver implementation
 
-    MaterialPropertyBlock _propertyBlock;
-
-    void UpdateRendererOverride(RenderTexture rt)
+    RenderTexture TryReceiveFrame()
     {
-        if (_targetRenderer == null || rt == null) return;
+        PrepareInternalObjects();
 
-        // Material property block lazy initialization
-        if (_propertyBlock == null)
-            _propertyBlock = new MaterialPropertyBlock();
+        // Do nothing if the recv object is not ready.
+        if (_recv == null) return null;
 
-        // Read-modify-write
-        _targetRenderer.GetPropertyBlock(_propertyBlock);
-        _propertyBlock.SetTexture(_targetMaterialProperty, rt);
-        _targetRenderer.SetPropertyBlock(_propertyBlock);
-    }
+        // Try getting a video frame.
+        var frameOrNull = RecvHelper.TryCaptureVideoFrame(_recv);
+        if (frameOrNull == null) return null;
+        var frame = (Interop.VideoFrame)frameOrNull;
 
-    void BlitToTargetTexture(RenderTexture rt)
-    {
-        if (_targetTexture == null | rt == null) return;
-        Graphics.Blit(rt, _targetTexture);
+        // Pixel format conversion
+        var rt = _converter.Decode
+          (frame.Width, frame.Height,
+           Util.CheckAlpha(frame.FourCC), frame.Data);
+
+        // Free the frame up.
+        _recv.FreeVideoFrame(frame);
+
+        return rt;
     }
 
     #endregion
 
     #region MonoBehaviour implementation
 
-    void OnDisable()
-      => ReleaseConverter();
+    void OnDisable() => ReleaseInternalObjects();
 
-    void OnDestroy()
+    void LateUpdate()
     {
-        ReleaseConverter();
-        ReleaseRecv();
-    }
-
-    void Update()
-    {
-        if (_recv == null)
-        {
-            TryCreateRecv();
-            // We don't expect that we can get the first frame right now,
-            // so return even if we successfully created the recv instance.
-            return;
-        }
-
         var rt = TryReceiveFrame();
-        if (rt != null)
+        if (rt == null) return;
+
+        // Material property override
+        if (_targetRenderer != null)
         {
-            UpdateRendererOverride(rt);
-            BlitToTargetTexture(rt);
+            _targetRenderer.GetPropertyBlock(_override);
+            _override.SetTexture(_targetMaterialProperty, rt);
+            _targetRenderer.SetPropertyBlock(_override);
         }
+
+        // External texture update
+        if (_targetTexture != null)
+            Graphics.Blit(rt, _targetTexture);
     }
 
     #endregion
