@@ -121,10 +121,7 @@ sealed class FormatConverter : System.IDisposable
         // Output buffer allocation
         if (_decoderOutput == null)
         {
-            _decoderOutput = new RenderTexture
-              (width, height, 0,
-               RenderTextureFormat.ARGB32,
-               RenderTextureReadWrite.sRGB);
+            _decoderOutput = new RenderTexture(width, height, 0);
             _decoderOutput.enableRandomWrite = true;
             _decoderOutput.Create();
         }

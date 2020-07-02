@@ -4,6 +4,14 @@
 Buffer<uint> Source;
 RWTexture2D<float4> Destination;
 
+// sRGB to linear conversion
+float3 SRGBToLinear(float3 c)
+{
+    float3 lo = c / 12.92;
+    float3 hi = pow((abs(c) + 0.055) / 1.055, 2.4);
+    return c <= 0.04045 ? lo : hi;
+}
+
 // YUV to RGB conversion (based on Rec.709 constants)
 float3 YUV2RGB(float3 yuv)
 {
@@ -19,7 +27,7 @@ float3 YUV2RGB(float3 yuv)
     float b = y + u * (1 - K_B);
     float g = (y - K_R * r - K_B * b) / K_G;
 
-    return float3(r, g, b);
+    return SRGBToLinear(float3(r, g, b));
 }
 
 // Packed UYVY conversion

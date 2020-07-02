@@ -60,9 +60,7 @@ public sealed partial class NdiSender : MonoBehaviour
             _width = Screen.width;
             _height = Screen.height;
 
-            var tempRT = RenderTexture.GetTemporary
-              (_width, _height, 0,
-               RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
+            var tempRT = RenderTexture.GetTemporary(_width, _height, 0);
 
             ScreenCapture.CaptureScreenshotIntoRenderTexture(tempRT);
             var converted = _converter.Encode(tempRT, _enableAlpha);
@@ -101,10 +99,7 @@ public sealed partial class NdiSender : MonoBehaviour
 
         // Temporary RT allocation
         var tempRT = Shader.PropertyToID("_TemporaryRT");
-        cb.GetTemporaryRT
-          (tempRT, _width, _height, 0,
-           FilterMode.Bilinear, RenderTextureFormat.ARGB32,
-           RenderTextureReadWrite.Linear, 1, false);
+        cb.GetTemporaryRT(tempRT, _width, _height, 0);
 
         // Blit to the temporary RT
         cb.Blit(source, tempRT, new Vector2(1, -1), new Vector2(0, 1));
