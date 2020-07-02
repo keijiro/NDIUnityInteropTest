@@ -60,7 +60,9 @@ public sealed partial class NdiSender : MonoBehaviour
             _width = Screen.width;
             _height = Screen.height;
 
-            var tempRT = RenderTexture.GetTemporary(_width, _height, 0);
+            var tempRT = RenderTexture.GetTemporary
+              (_width, _height, 0,
+               RenderTextureFormat.Default, RenderTextureReadWrite.Linear);
 
             ScreenCapture.CaptureScreenshotIntoRenderTexture(tempRT);
             var converted = _converter.Encode(tempRT, _enableAlpha);
