@@ -7,6 +7,7 @@ RWTexture2D<float4> Destination;
 // sRGB to linear conversion
 float3 SRGBToLinear(float3 c)
 {
+    return c;
     float3 lo = c / 12.92;
     float3 hi = pow((abs(c) + 0.055) / 1.055, 2.4);
     return c <= 0.04045 ? lo : hi;
