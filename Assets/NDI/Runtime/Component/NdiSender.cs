@@ -120,6 +120,9 @@ public sealed partial class NdiSender : MonoBehaviour
 
     unsafe void OnReadback(AsyncGPUReadbackRequest request)
     {
+        // Ignore errors.
+        if (request.hasError) return;
+
         // Ignore it if the NDI object has been already disposed.
         if (_send == null || _send.IsInvalid || _send.IsClosed) return;
 
