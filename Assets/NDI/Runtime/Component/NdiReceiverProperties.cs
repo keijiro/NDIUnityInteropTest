@@ -10,13 +10,7 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     public string ndiName
       { get => _ndiName;
-        set => SetNdiName(value); }
-
-    void SetNdiName(string name)
-    {
-        _ndiName = name;
-        RequestReset();
-    }
+        set { _ndiName = value; RequestReset(); } }
 
     #endregion
 
@@ -45,6 +39,9 @@ public sealed partial class NdiReceiver : MonoBehaviour
     #region Resources asset reference
 
     [SerializeField, HideInInspector] NdiResources _resources = null;
+
+    public void SetResources(NdiResources resources)
+      => _resources = resources;
 
     #endregion
 }

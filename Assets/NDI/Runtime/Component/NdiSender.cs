@@ -7,12 +7,6 @@ namespace NDI {
 [ExecuteInEditMode]
 public sealed partial class NdiSender : MonoBehaviour
 {
-    #region Editor interface
-
-    internal void RequestReset() => ReleaseInternalObjects();
-
-    #endregion
-
     #region Internal objects
 
     int _width, _height;
@@ -48,8 +42,11 @@ public sealed partial class NdiSender : MonoBehaviour
         // Simply convert the source texture and return it.
         if (_captureMethod == CaptureMethod.Texture)
         {
+            if (_sourceTexture == null) return null;
+
             _width = _sourceTexture.width;
             _height = _sourceTexture.height;
+
             return _converter.Encode(_sourceTexture, _enableAlpha);
         }
 
@@ -80,9 +77,11 @@ public sealed partial class NdiSender : MonoBehaviour
         for (var eof = new WaitForEndOfFrame(); true;)
         {
             yield return eof;
-            if (!enabled) yield break;
-            if (_captureMethod != CaptureMethod.Camera)
-                AsyncGPUReadback.Request(CaptureImmediate(), _onReadback);
+
+            var converted = CaptureImmediate();
+            if (converted == null) continue;
+
+            AsyncGPUReadback.Request(converted, _onReadback);
         }
     }
 
@@ -92,6 +91,11 @@ public sealed partial class NdiSender : MonoBehaviour
 
     void OnCameraCapture(RenderTargetIdentifier source, CommandBuffer cb)
     {
+        // NOTE: In some corner cases, this callback is called after object
+        // destruction. To avoid these cases, we check the _attachedCamera
+        // value and return if it's null. See ResetState() for details.
+        if (_attachedCamera == null) return;
+
         PrepareInternalObjects();
 
         _width = _sourceCamera.pixelWidth;
@@ -150,32 +154,76 @@ public sealed partial class NdiSender : MonoBehaviour
 
     #endregion
 
+    #region Component state controller
+
+    Camera _attachedCamera;
+
+    // Reset the component state without disposing the NDI send object.
+    internal void ResetState(bool willBeActive)
+    {
+        // Disable the subcomponents.
+        StopAllCoroutines();
+
+        //
+        // Remove the capture callback from the camera.
+        //
+        // NOTE: We're not able to remove the capture callback correcly when
+        // the camera has been destroyed because we end up with getting a null
+        // reference from _attachedCamera. To avoid causing issues in the
+        // callback, we make sure that _attachedCamera has a null reference.
+        //
+        if (_attachedCamera != null)
+        {
+        #if NDI_HAS_SRP
+            CameraCaptureBridge.RemoveCaptureAction
+              (_attachedCamera, OnCameraCapture);
+        #endif
+        }
+
+        _attachedCamera = null;
+
+        // The following blocks are to activate the subcomponents.
+        // We can return here if willBeActive is false.
+        if (!willBeActive) return;
+
+        if (_captureMethod == CaptureMethod.Camera)
+        {
+            // Enable the camera capture callback.
+            if (_sourceCamera != null)
+            {
+                _attachedCamera = _sourceCamera;
+            #if NDI_HAS_SRP
+                CameraCaptureBridge.AddCaptureAction
+                  (_attachedCamera, OnCameraCapture);
+            #endif
+            }
+        }
+        else
+        {
+            // Enable the immediate capture coroutine.
+            StartCoroutine(ImmediateCaptureCoroutine());
+        }
+    }
+
+    // Reset the component state and dispose the NDI send object.
+    internal void Restart(bool willBeActivate)
+    {
+        ResetState(willBeActivate);
+        ReleaseInternalObjects();
+    }
+
+    internal void ResetState() => ResetState(isActiveAndEnabled);
+    internal void Restart() => Restart(isActiveAndEnabled);
+
+    #endregion
+
     #region MonoBehaviour implementation
 
-    void OnEnable()
-    {
-        StartCoroutine(ImmediateCaptureCoroutine());
+    void OnEnable() => ResetState();
 
-    #if NDI_HAS_SRP
-        if (_captureMethod == CaptureMethod.Camera)
-            CameraCaptureBridge.AddCaptureAction
-              (_sourceCamera, OnCameraCapture);
-    #endif
-    }
+    void OnDisable() => Restart(false);
 
-    void OnDisable()
-    {
-        StopAllCoroutines();
-        ReleaseInternalObjects();
-
-    #if NDI_HAS_SRP
-        if (_captureMethod == CaptureMethod.Camera)
-            CameraCaptureBridge.RemoveCaptureAction
-              (_sourceCamera, OnCameraCapture);
-    #endif
-    }
-
-    void OnDestroy() => ReleaseInternalObjects();
+    void OnDestroy() => Restart(false);
 
     #endregion
 }

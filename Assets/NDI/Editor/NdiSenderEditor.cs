@@ -34,17 +34,23 @@ sealed class NdiSenderEditor : UnityEditor.Editor
 
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.DelayedTextField(_ndiName, Styles.NdiName);
-        if (EditorGUI.EndChangeCheck())
-            foreach (NdiSender ns in targets) ns.RequestReset();
+        var restart = EditorGUI.EndChangeCheck();
 
         EditorGUILayout.PropertyField(_enableAlpha);
+
+        EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(_captureMethod);
+        var reset = EditorGUI.EndChangeCheck();
 
         EditorGUI.indentLevel++;
 
         if (_captureMethod.hasMultipleDifferentValues ||
             _captureMethod.enumValueIndex == (int)CaptureMethod.Camera)
+        {
+            EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(_sourceCamera);
+            reset |= EditorGUI.EndChangeCheck();
+        }
 
         if (_captureMethod.hasMultipleDifferentValues ||
             _captureMethod.enumValueIndex == (int)CaptureMethod.Texture)
@@ -53,6 +59,10 @@ sealed class NdiSenderEditor : UnityEditor.Editor
         EditorGUI.indentLevel--;
 
         serializedObject.ApplyModifiedProperties();
+
+        // Restart or reset the sender on property changes.
+        if (restart) foreach (NdiSender ns in targets) ns.Restart();
+        if (reset) foreach (NdiSender ns in targets) ns.ResetState();
     }
 }
 

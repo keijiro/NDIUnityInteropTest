@@ -12,13 +12,7 @@ public sealed partial class NdiSender : MonoBehaviour
 
     public string ndiName
       { get => _ndiName;
-        set => SetNdiName(value); }
-
-    void SetNdiName(string name)
-    {
-        _ndiName = name;
-        RequestReset();
-    }
+        set { _ndiName = value; Restart(); } }
 
     [SerializeField] bool _enableAlpha = false;
 
@@ -34,13 +28,13 @@ public sealed partial class NdiSender : MonoBehaviour
 
     public CaptureMethod captureMethod
       { get => _captureMethod;
-        set => _captureMethod = value; }
+        set { _captureMethod = value; ResetState(); } }
 
     [SerializeField] Camera _sourceCamera = null;
 
     public Camera sourceCamera
       { get => _sourceCamera;
-        set => _sourceCamera = value; }
+        set { _sourceCamera = value; ResetState(); } }
 
     [SerializeField] Texture _sourceTexture = null;
 
@@ -53,6 +47,9 @@ public sealed partial class NdiSender : MonoBehaviour
     #region Resources asset reference
 
     [SerializeField, HideInInspector] NdiResources _resources = null;
+
+    public void SetResources(NdiResources resources)
+      => _resources = resources;
 
     #endregion
 }
