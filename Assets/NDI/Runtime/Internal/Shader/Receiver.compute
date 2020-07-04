@@ -1,7 +1,7 @@
 #pragma kernel DecodeUYVY
 #pragma kernel DecodeUYVA
 
-Buffer<uint> Source;
+StructuredBuffer<uint> Source;
 RWTexture2D<float4> Destination;
 
 // sRGB to linear conversion

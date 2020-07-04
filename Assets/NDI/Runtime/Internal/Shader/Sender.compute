@@ -2,7 +2,7 @@
 #pragma kernel EncodeUYVA
 
 Texture2D<float4> Source;
-RWBuffer<uint> Destination;
+RWStructuredBuffer<uint> Destination;
 
 // Linear to sRGB conversion
 float3 LinearToSRGB(float3 c)
