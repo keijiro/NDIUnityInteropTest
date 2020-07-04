@@ -96,6 +96,8 @@ sealed class FormatConverter : System.IDisposable
     ComputeDataSetter _decoderSetter;
     RenderTexture _decoderOutput;
 
+    public RenderTexture LastDecoderOutput => _decoderOutput;
+
     public RenderTexture
       Decode(int width, int height, bool enableAlpha, IntPtr data)
     {

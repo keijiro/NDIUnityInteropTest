@@ -22,7 +22,6 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
     void ShowNdiNameDropdown(Rect rect)
     {
         var menu = new GenericMenu();
-
         var sources = SharedInstance.Find.CurrentSources;
 
         if (sources.Length > 0)
@@ -47,13 +46,13 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
         serializedObject.Update();
         _ndiName.stringValue = (string)name;
         serializedObject.ApplyModifiedProperties();
-        RequestReconnect();
+        RequestRestart();
     }
 
-    // Request receiver reconnection.
-    void RequestReconnect()
+    // Request receiver restart.
+    void RequestRestart()
     {
-        foreach (NdiReceiver receiver in targets) receiver.RequestReset();
+        foreach (NdiReceiver receiver in targets) receiver.Restart();
     }
 
     void OnEnable()
@@ -74,7 +73,7 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
         // Source name text field
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.DelayedTextField(_ndiName);
-        if (EditorGUI.EndChangeCheck()) RequestReconnect();
+        var restart = EditorGUI.EndChangeCheck();
 
         // Source name dropdown
         var rect = EditorGUILayout.GetControlRect(false, GUILayout.Width(60));
@@ -105,6 +104,8 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
         EditorGUI.indentLevel--;
 
         serializedObject.ApplyModifiedProperties();
+
+        if (restart) RequestRestart();
     }
 }
 

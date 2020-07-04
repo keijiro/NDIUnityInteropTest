@@ -10,7 +10,7 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     public string ndiName
       { get => _ndiName;
-        set { _ndiName = value; RequestReset(); } }
+        set { _ndiName = value; Restart(); } }
 
     #endregion
 
@@ -33,6 +33,12 @@ public sealed partial class NdiReceiver : MonoBehaviour
     public string targetMaterialProperty
       { get => _targetMaterialProperty;
         set => _targetMaterialProperty = value; }
+
+    #endregion
+
+    #region Runtime property
+
+    public RenderTexture texture => _converter.LastDecoderOutput;
 
     #endregion
 

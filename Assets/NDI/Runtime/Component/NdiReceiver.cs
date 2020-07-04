@@ -6,12 +6,6 @@ namespace NDI {
 [ExecuteInEditMode]
 public sealed partial class NdiReceiver : MonoBehaviour
 {
-    #region Internal method (for editor use)
-
-    internal void RequestReset() => ReleaseInternalObjects();
-
-    #endregion
-
     #region Internal objects
 
     Interop.Recv _recv;
@@ -60,6 +54,12 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
         return rt;
     }
+
+    #endregion
+
+    #region Component state controller
+
+    internal void Restart() => ReleaseInternalObjects();
 
     #endregion
 
