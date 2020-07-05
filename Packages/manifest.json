@@ -16,7 +16,6 @@
     }
   ],
   "dependencies": {
-    "com.unity.render-pipelines.universal": "7.4.1",
-    "org.nuget.system.memory": "4.5.4"
+    "com.unity.render-pipelines.universal": "7.4.1"
   }
 }

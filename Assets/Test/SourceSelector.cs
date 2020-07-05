@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
-using NDI;
+using Klak.NDI;
 
 public class SourceSelector : MonoBehaviour
 {
