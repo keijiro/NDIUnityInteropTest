@@ -1,6 +1,8 @@
 KlakNDI
 =======
 
+![gif](https://i.imgur.com/I1ZMSY8.gif)
+
 **KlakNDI** is a Unity plugin that allows sending/receiving video frames
 between computers using [NDI].
 
@@ -75,6 +77,8 @@ After changes, the manifest file should look like below:
 NDI Sender Component
 --------------------
 
+![screenshot](https://i.imgur.com/kUnWqeZ.png)
+
 The **NDI Sender** component (`NdiSender`) sends a video stream from a given
 video source.
 
@@ -83,7 +87,8 @@ video source.
 **Enable Alpha** - Enable this checkbox to make the stream contain the alpha
 channel. You can disable it to reduce the bandwidth.
 
-**Capture Method** - Specify how to capture the video source.
+**Capture Method** - Specify how to capture the video source from the following
+options.
 
   - Game View - The sender captures frames from the Game View.
   - Camera - The sender captures frames from a given camera. Note: This option only supports URP and HDRP.
@@ -91,6 +96,8 @@ channel. You can disable it to reduce the bandwidth.
 
 NDI Receiver Component
 ----------------------
+
+![screenshot](https://i.imgur.com/UmCvOK6.png)
 
 The **NDI Receiver** component (`NdiReceiver`) receives a video stream and
 feeds it to a renderer object or a render texture asset.
