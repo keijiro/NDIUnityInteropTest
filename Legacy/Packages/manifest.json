@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.unity.ugui": "1.0.0",
     "jp.keijiro.klak.ndi": "file:../../jp.keijiro.klak.ndi"
   }
 }
