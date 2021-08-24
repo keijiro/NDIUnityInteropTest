@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "jp.keijiro.klak.ndi": "file:../../jp.keijiro.klak.ndi"
+  }
+}
