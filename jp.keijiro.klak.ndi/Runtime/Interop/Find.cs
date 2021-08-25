@@ -23,11 +23,8 @@ public class Find : SafeHandleZeroOrMinusOneIsInvalid
     public static Find Create()
       => _Create(new Settings { ShowLocalSources = true });
 
-    unsafe public Span<Source> CurrentSources { get {
-        uint count;
-        var array = _GetCurrentSources(this, out count);
-        return new Span<Source>((void*)array, (int)count);
-    } }
+    public Span<Source> CurrentSources
+      => GetCurrentSourcesAsSpan();
 
     #endregion
 
@@ -39,6 +36,13 @@ public class Find : SafeHandleZeroOrMinusOneIsInvalid
         [MarshalAsAttribute(UnmanagedType.U1)] public bool ShowLocalSources;
         public IntPtr Groups;
         public IntPtr ExtraIPs;
+    }
+
+    unsafe Span<Source> GetCurrentSourcesAsSpan()
+    {
+        uint count;
+        var array = _GetCurrentSources(this, out count);
+        return new Span<Source>((void*)array, (int)count);
     }
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_find_create_v2")]
@@ -53,4 +57,4 @@ public class Find : SafeHandleZeroOrMinusOneIsInvalid
     #endregion
 }
 
-}
+} // namespace Klak.Ndi.Interop
