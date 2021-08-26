@@ -30,10 +30,10 @@ public class Find : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Unmanaged interface
 
-    [StructLayoutAttribute(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct Settings 
     {
-        [MarshalAsAttribute(UnmanagedType.U1)] public bool ShowLocalSources;
+        [MarshalAs(UnmanagedType.U1)] public bool ShowLocalSources;
         public IntPtr Groups;
         public IntPtr ExtraIPs;
     }

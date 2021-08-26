@@ -24,13 +24,13 @@ public enum ColorFormat
 
 public class Recv : SafeHandleZeroOrMinusOneIsInvalid
 {
-    [StructLayoutAttribute(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct Settings 
     {
         public Source Source;
         public ColorFormat ColorFormat;
         public Bandwidth Bandwidth;
-        [MarshalAsAttribute(UnmanagedType.U1)]
+        [MarshalAs(UnmanagedType.U1)]
         public bool AllowVideoFields;
         public IntPtr Name;
     }

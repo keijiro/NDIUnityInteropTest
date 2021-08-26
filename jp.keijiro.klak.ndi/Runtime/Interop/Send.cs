@@ -22,7 +22,11 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
 
     public static Send Create(string name)
     {
+    //#if KLAK_NDI_NET_STANDARD_2_1
+        //var cname = Marshal.StringToHGlobalUTF8(name);
+    //#else
         var cname = Marshal.StringToHGlobalAnsi(name);
+    //#endif
         var settings = new Settings { NdiName = cname };
         var ptr = _Create(settings);
         Marshal.FreeHGlobal(cname);
@@ -39,13 +43,13 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Unmanaged interface
 
-    [StructLayoutAttribute(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct Settings 
     {
         public IntPtr NdiName;
         public IntPtr Groups;
-        [MarshalAsAttribute(UnmanagedType.U1)] public bool ClockVideo;
-        [MarshalAsAttribute(UnmanagedType.U1)] public bool ClockAudio;
+        [MarshalAs(UnmanagedType.U1)] public bool ClockVideo;
+        [MarshalAs(UnmanagedType.U1)] public bool ClockAudio;
     }
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_create")]
@@ -64,4 +68,4 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
     #endregion
 }
 
-}
+} // namespace Klak.Ndi.Interop

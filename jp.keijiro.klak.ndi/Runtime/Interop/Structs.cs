@@ -34,17 +34,22 @@ public enum FrameFormat
     Field1
 }
 
-[StructLayoutAttribute(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential)]
 public struct Source
 {
-    public IntPtr _NdiName;
-    public IntPtr _UrlAddress;
+    IntPtr _NdiName;
+    IntPtr _UrlAddress;
 
+#if KLAK_NDI_NET_STANDARD_2_1
+    public string NdiName => Marshal.PtrToStringUTF8(_NdiName);
+    public string UrlAddress => Marshal.PtrToStringUTF8(_UrlAddress);
+#else
     public string NdiName => Marshal.PtrToStringAnsi(_NdiName);
     public string UrlAddress => Marshal.PtrToStringAnsi(_UrlAddress);
+#endif
 }
 
-[StructLayoutAttribute(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential)]
 public struct VideoFrame
 {
     public int Width, Height;
@@ -59,13 +64,13 @@ public struct VideoFrame
     public long Timestamp;
 }
 
-[StructLayoutAttribute(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential)]
 public struct Tally
 {
-    [MarshalAsAttribute(UnmanagedType.U1)]
+    [MarshalAs(UnmanagedType.U1)]
     public bool OnProgram;
-    [MarshalAsAttribute(UnmanagedType.U1)]
+    [MarshalAs(UnmanagedType.U1)]
     public bool OnPreview;
 }
 
-}
+} // namespace Klak.Ndi.Interop
