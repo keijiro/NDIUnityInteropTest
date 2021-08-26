@@ -67,10 +67,8 @@ public struct VideoFrame
 [StructLayout(LayoutKind.Sequential)]
 public struct Tally
 {
-    [MarshalAs(UnmanagedType.U1)]
-    public bool OnProgram;
-    [MarshalAs(UnmanagedType.U1)]
-    public bool OnPreview;
+    [MarshalAs(UnmanagedType.U1)] public bool OnProgram;
+    [MarshalAs(UnmanagedType.U1)] public bool OnPreview;
 }
 
 } // namespace Klak.Ndi.Interop

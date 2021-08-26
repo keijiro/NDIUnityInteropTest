@@ -21,17 +21,7 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
     #region Public methods
 
     public static Send Create(string name)
-    {
-    //#if KLAK_NDI_NET_STANDARD_2_1
-        //var cname = Marshal.StringToHGlobalUTF8(name);
-    //#else
-        var cname = Marshal.StringToHGlobalAnsi(name);
-    //#endif
-        var settings = new Settings { NdiName = cname };
-        var ptr = _Create(settings);
-        Marshal.FreeHGlobal(cname);
-        return ptr;
-    }
+      => _Create(new Settings { NdiName = name });
 
     public void SendVideoAsync(in VideoFrame data)
       => _SendVideoAsync(this, data);
@@ -43,11 +33,11 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Unmanaged interface
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct Settings 
     {
-        public IntPtr NdiName;
-        public IntPtr Groups;
+        [MarshalAs(UnmanagedType.LPStr)] public string NdiName;
+        [MarshalAs(UnmanagedType.LPStr)] public string Groups;
         [MarshalAs(UnmanagedType.U1)] public bool ClockVideo;
         [MarshalAs(UnmanagedType.U1)] public bool ClockAudio;
     }
