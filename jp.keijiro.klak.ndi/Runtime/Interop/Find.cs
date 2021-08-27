@@ -30,6 +30,7 @@ public class Find : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Unmanaged interface
 
+    // Constructor options (equivalent to NDIlib_find_create_t)
     [StructLayout(LayoutKind.Sequential)]
     public struct Settings 
     {

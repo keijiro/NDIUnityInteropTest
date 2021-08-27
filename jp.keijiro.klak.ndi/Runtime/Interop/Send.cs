@@ -33,6 +33,7 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Unmanaged interface
 
+    // Constructor options (equivalent to NDIlib_send_create_t)
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct Settings 
     {

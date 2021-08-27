@@ -4,6 +4,7 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Klak.Ndi.Interop {
 
+// Bandwidth enumeration (equivalent to NDIlib_recv_bandwidth_e)
 public enum Bandwidth
 {
     MetadataOnly = -10,
@@ -12,6 +13,7 @@ public enum Bandwidth
     Highest = 100
 }
 
+// Color format enumeration (equivalent to NDIlib_recv_color_format_e)
 public enum ColorFormat
 {
     BGRX_BGRA = 0,
@@ -19,22 +21,12 @@ public enum ColorFormat
     RGBX_RGBA = 2,
     UYVY_RGBA = 3,
     BGRX_BGRA_Flipped = 200,
-    Fastest = 100
+    Fastest = 100,
+    Best = 101
 }
 
 public class Recv : SafeHandleZeroOrMinusOneIsInvalid
 {
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Settings 
-    {
-        public Source Source;
-        public ColorFormat ColorFormat;
-        public Bandwidth Bandwidth;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool AllowVideoFields;
-        public IntPtr Name;
-    }
-
     #region SafeHandle implementation
 
     Recv() : base(true) {}
@@ -66,6 +58,17 @@ public class Recv : SafeHandleZeroOrMinusOneIsInvalid
 
     #region Unmanaged interface
 
+    // Constructor options (equivalent to NDIlib_recv_create_v3_t)
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Settings
+    {
+        public Source Source;
+        public ColorFormat ColorFormat;
+        public Bandwidth Bandwidth;
+        [MarshalAs(UnmanagedType.U1)] public bool AllowVideoFields;
+        public IntPtr Name;
+    }
+
     [DllImport(Config.DllName, EntryPoint = "NDIlib_recv_create_v3")]
     static extern Recv _Create(in Settings Settings);
 
@@ -73,8 +76,9 @@ public class Recv : SafeHandleZeroOrMinusOneIsInvalid
     static extern void _Destroy(IntPtr recv);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_recv_capture_v2")]
-    static extern FrameType _Capture(Recv recv,
-      out VideoFrame video, IntPtr audio, IntPtr metadata, uint timeout);
+    static extern FrameType _Capture
+      (Recv recv, out VideoFrame video,
+       IntPtr audio, IntPtr metadata, uint timeout);
 
     [DllImport(Config.DllName, EntryPoint = "NDIlib_recv_free_video_v2")]
     static extern void _FreeVideo(Recv recv, in VideoFrame data);

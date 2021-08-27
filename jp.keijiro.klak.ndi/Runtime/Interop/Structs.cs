@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Klak.Ndi.Interop {
 
+// Packet type enumeration (equivalent to NDIlib_frame_type_e)
 public enum FrameType
 {
     None = 0,
@@ -13,19 +14,26 @@ public enum FrameType
     StatusChange = 100
 }
 
+// FourCC values for video/audio frames
 public enum FourCC
 {
+    // Video
     UYVY = 0x59565955,
+    UYVA = 0x41565955,
+    P216 = 0x36313250,
+    PA16 = 0x36314150,
     YV12 = 0x32315659,
-    NV12 = 0x3231564E,
     I420 = 0x30323449,
+    NV12 = 0x3231564E,
     BGRA = 0x41524742,
     BGRX = 0x58524742,
     RGBA = 0x41424752,
     RGBX = 0x58424752,
-    UYVA = 0x41565955
+    // Audio
+    FLTp = 0x70544c46
 }
 
+// Frame format enumeration (equivalent to NDIlib_frame_format_type_e)
 public enum FrameFormat
 {
     Interleaved,
@@ -34,6 +42,7 @@ public enum FrameFormat
     Field1
 }
 
+// NDI source descriptor (equivalent to NDIlib_source_t)
 [StructLayout(LayoutKind.Sequential)]
 public struct Source
 {
@@ -49,6 +58,7 @@ public struct Source
 #endif
 }
 
+// Video frame descriptor (equivalent to NDILib_video_frame_v2_t)
 [StructLayout(LayoutKind.Sequential)]
 public struct VideoFrame
 {
@@ -64,6 +74,7 @@ public struct VideoFrame
     public long Timestamp;
 }
 
+// Tally data structure (equivalent to NDIlib_tally_t)
 [StructLayout(LayoutKind.Sequential)]
 public struct Tally
 {
