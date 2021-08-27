@@ -48,6 +48,9 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_destroy")]
     static extern void _Destroy(IntPtr send);
 
+    [DllImport(Config.DllName, EntryPoint = "NDIlib_send_send_video_v2")]
+    static extern void _SendVideo(Send send, in VideoFrame data);
+
     [DllImport(Config.DllName, EntryPoint = "NDIlib_send_send_video_async_v2")]
     static extern void _SendVideoAsync(Send send, in VideoFrame data);
 
