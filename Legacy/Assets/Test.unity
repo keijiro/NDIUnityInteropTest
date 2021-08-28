@@ -264,7 +264,7 @@ MonoBehaviour:
   _enableAlpha: 0
   _captureMethod: 2
   _sourceCamera: {fileID: 0}
-  _sourceTexture: {fileID: 8400000, guid: b8e48caaebde94f3e9ddca8ffc194435, type: 2}
+  _sourceTexture: {fileID: 8400000, guid: 443d954f848144330b62ee88c3ec475e, type: 2}
   _resources: {fileID: 11400000, guid: 69304b86950074db7ba8caba75214004, type: 2}
 --- !u!1 &289515513
 GameObject:
@@ -492,7 +492,7 @@ Camera:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingPath: 1
-  m_TargetTexture: {fileID: 8400000, guid: b8e48caaebde94f3e9ddca8ffc194435, type: 2}
+  m_TargetTexture: {fileID: 8400000, guid: 443d954f848144330b62ee88c3ec475e, type: 2}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 0

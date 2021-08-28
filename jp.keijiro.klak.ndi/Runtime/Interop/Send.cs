@@ -23,6 +23,9 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
     public static Send Create(string name)
       => _Create(new Settings { NdiName = name });
 
+    public void SendVideo(in VideoFrame data)
+      => _SendVideo(this, data);
+
     public void SendVideoAsync(in VideoFrame data)
       => _SendVideoAsync(this, data);
 

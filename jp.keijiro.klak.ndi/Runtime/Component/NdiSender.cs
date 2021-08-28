@@ -151,7 +151,8 @@ public sealed partial class NdiSender : MonoBehaviour
                 Data = (System.IntPtr)pdata, Metadata = metadata };
 
             // Send via NDI
-            _send.SendVideoAsync(frame);
+            //_send.SendVideoAsync(frame);
+            _send.SendVideo(frame);
         }
     }
 
