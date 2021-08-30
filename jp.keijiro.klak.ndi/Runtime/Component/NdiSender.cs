@@ -85,7 +85,9 @@ public sealed partial class NdiSender : MonoBehaviour
             var converted = CaptureImmediate();
             if (converted == null) continue;
 
-            AsyncGPUReadback.Request(converted, _onReadback);
+            var buffer = BufferQueue.Allocate(_width, _height);
+            AsyncGPUReadback.RequestIntoNativeArray
+              (ref buffer, converted, _onReadback);
             _metadataQueue.Enqueue(metadata);
         }
     }
@@ -111,7 +113,9 @@ public sealed partial class NdiSender : MonoBehaviour
           (cb, source, _width, _height, _enableAlpha, true);
 
         // GPU readback request
-        cb.RequestAsyncReadback(converted, _onReadback);
+        var buffer = BufferQueue.Allocate(_width, _height);
+        cb.RequestAsyncReadbackIntoNativeArray
+          (ref buffer, converted, _onReadback);
         _metadataQueue.Enqueue(metadata);
     }
 
@@ -151,8 +155,10 @@ public sealed partial class NdiSender : MonoBehaviour
                 Data = (System.IntPtr)pdata, Metadata = metadata };
 
             // Send via NDI
-            //_send.SendVideoAsync(frame);
-            _send.SendVideo(frame);
+            _send.SendVideoAsync(frame);
+            //_send.SendVideo(frame);
+
+            BufferQueue.Dequeue();
         }
     }
 
@@ -232,4 +238,4 @@ public sealed partial class NdiSender : MonoBehaviour
     #endregion
 }
 
-}
+} // namespace Klak.Ndi
