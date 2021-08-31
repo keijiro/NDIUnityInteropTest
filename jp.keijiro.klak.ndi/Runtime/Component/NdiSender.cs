@@ -13,6 +13,7 @@ public sealed partial class NdiSender : MonoBehaviour
     Interop.Send _send;
     FormatConverter _converter;
     MetadataQueue _metadataQueue = new MetadataQueue();
+    BufferPool _bufferPool;
     System.Action<AsyncGPUReadbackRequest> _onReadback;
 
     void PrepareInternalObjects()
@@ -22,16 +23,24 @@ public sealed partial class NdiSender : MonoBehaviour
               SharedInstance.GameViewSend : Interop.Send.Create(_ndiName);
         if (_converter == null) _converter = new FormatConverter(_resources);
         if (_onReadback == null) _onReadback = OnReadback;
+        if (_bufferPool == null) _bufferPool = new BufferPool();
     }
 
     void ReleaseInternalObjects()
     {
+        // Total synchronization: This may cause a frame hiccup, but it's
+        // needed to dispose the readback buffer objects safely.
+        AsyncGPUReadback.WaitAllRequests();
+
         if (_send != null && !SharedInstance.IsGameViewSend(_send))
             _send.Dispose();
         _send = null;
 
         _converter?.Dispose();
         _converter = null;
+
+        _bufferPool?.Dispose();
+        _bufferPool = null;
     }
 
     #endregion
@@ -85,7 +94,7 @@ public sealed partial class NdiSender : MonoBehaviour
             var converted = CaptureImmediate();
             if (converted == null) continue;
 
-            var buffer = BufferQueue.Allocate(_width, _height);
+            var buffer = _bufferPool.Allocate(_width, _height);
             AsyncGPUReadback.RequestIntoNativeArray
               (ref buffer, converted, _onReadback);
             _metadataQueue.Enqueue(metadata);
@@ -113,7 +122,7 @@ public sealed partial class NdiSender : MonoBehaviour
           (cb, source, _width, _height, _enableAlpha, true);
 
         // GPU readback request
-        var buffer = BufferQueue.Allocate(_width, _height);
+        var buffer = _bufferPool.Allocate(_width, _height);
         cb.RequestAsyncReadbackIntoNativeArray
           (ref buffer, converted, _onReadback);
         _metadataQueue.Enqueue(metadata);
@@ -158,7 +167,7 @@ public sealed partial class NdiSender : MonoBehaviour
             _send.SendVideoAsync(frame);
             //_send.SendVideo(frame);
 
-            BufferQueue.Dequeue();
+            _bufferPool.DisposeOldest();
         }
     }
 
