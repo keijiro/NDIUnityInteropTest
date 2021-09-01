@@ -12,8 +12,7 @@ public sealed partial class NdiSender : MonoBehaviour
     int _width, _height;
     Interop.Send _send;
     FormatConverter _converter;
-    MetadataQueue _metadataQueue = new MetadataQueue();
-    BufferPool _bufferPool;
+    FrameQueue _frameQueue;
     System.Action<AsyncGPUReadbackRequest> _onReadback;
 
     void PrepareInternalObjects()
@@ -23,7 +22,7 @@ public sealed partial class NdiSender : MonoBehaviour
               SharedInstance.GameViewSend : Interop.Send.Create(_ndiName);
         if (_converter == null) _converter = new FormatConverter(_resources);
         if (_onReadback == null) _onReadback = OnReadback;
-        if (_bufferPool == null) _bufferPool = new BufferPool();
+        if (_frameQueue == null) _frameQueue = new FrameQueue();
     }
 
     void ReleaseInternalObjects()
@@ -39,8 +38,14 @@ public sealed partial class NdiSender : MonoBehaviour
         _converter?.Dispose();
         _converter = null;
 
-        _bufferPool?.Dispose();
-        _bufferPool = null;
+        _frameQueue?.Dispose();
+        _frameQueue = null;
+
+        if (_lastSent.IsValid)
+        {
+            _lastSent.Dispose();
+            _lastSent = default(FrameEntry);
+        }
     }
 
     #endregion
@@ -94,10 +99,12 @@ public sealed partial class NdiSender : MonoBehaviour
             var converted = CaptureImmediate();
             if (converted == null) continue;
 
-            var buffer = _bufferPool.Allocate(_width, _height);
+            var entry = _frameQueue.Allocate
+              (_width, _height, enableAlpha, metadata);
+
+            var buffer = entry.ImageBuffer;
             AsyncGPUReadback.RequestIntoNativeArray
               (ref buffer, converted, _onReadback);
-            _metadataQueue.Enqueue(metadata);
         }
     }
 
@@ -122,53 +129,60 @@ public sealed partial class NdiSender : MonoBehaviour
           (cb, source, _width, _height, _enableAlpha, true);
 
         // GPU readback request
-        var buffer = _bufferPool.Allocate(_width, _height);
+        var entry = _frameQueue.Allocate
+          (_width, _height, enableAlpha, metadata);
+
+        var buffer = entry.ImageBuffer;
         cb.RequestAsyncReadbackIntoNativeArray
           (ref buffer, converted, _onReadback);
-        _metadataQueue.Enqueue(metadata);
     }
 
     #endregion
 
     #region GPU readback completion callback
 
+    FrameEntry _lastSent;
+
     unsafe void OnReadback(AsyncGPUReadbackRequest request)
     {
-        // Metadata retrieval
-        using (var metadata = _metadataQueue.Dequeue())
+        var entry = _frameQueue.Retrieve(request.GetData<byte>());
+
+        if (!entry.IsValid) return;
+
+        // Ignore errors.
+        if (request.hasError)
         {
-            // Ignore errors.
-            if (request.hasError) return;
-
-            // Ignore it if the NDI object has been already disposed.
-            if (_send == null || _send.IsInvalid || _send.IsClosed) return;
-
-            // Pixel format (depending on alpha mode)
-            var fourcc = _enableAlpha ?
-              Interop.FourCC.UYVA : Interop.FourCC.UYVY;
-
-            // Readback data retrieval
-            var data = request.GetData<byte>();
-            var pdata = NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(data);
-
-            // Data size verification
-            if (data.Length / sizeof(uint) !=
-                Util.FrameDataCount(_width, _height, _enableAlpha)) return;
-
-            // Frame data setup
-            var frame = new Interop.VideoFrame
-              { Width = _width, Height = _height, LineStride = _width * 2,
-                FourCC = _enableAlpha ?
-                  Interop.FourCC.UYVA : Interop.FourCC.UYVY,
-                FrameFormat = Interop.FrameFormat.Progressive,
-                Data = (System.IntPtr)pdata, Metadata = metadata };
-
-            // Send via NDI
-            _send.SendVideoAsync(frame);
-            //_send.SendVideo(frame);
-
-            _bufferPool.DisposeOldest();
+            entry.Dispose();
+            return;
         }
+
+        // Ignore it if the NDI object has been already disposed.
+        if (_send == null || _send.IsInvalid || _send.IsClosed)
+        {
+            entry.Dispose();
+            return;
+        }
+
+        // Pixel format (depending on alpha mode)
+        var fourcc = _enableAlpha ?
+          Interop.FourCC.UYVA : Interop.FourCC.UYVY;
+
+        // Frame data setup
+        var frame = new Interop.VideoFrame
+          { Width = entry.Width,
+            Height = entry.Height,
+            LineStride = entry.Width * 2,
+            FourCC = entry.AlphaFlag ?
+              Interop.FourCC.UYVA : Interop.FourCC.UYVY,
+            FrameFormat = Interop.FrameFormat.Progressive,
+            Data = entry.ImagePointer,
+            Metadata = entry.Metadata };
+
+        // Send via NDI
+        _send.SendVideoAsync(frame);
+
+        _lastSent.Dispose();
+        _lastSent = entry;
     }
 
     #endregion
