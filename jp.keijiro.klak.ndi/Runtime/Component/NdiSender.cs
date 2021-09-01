@@ -12,7 +12,7 @@ public sealed partial class NdiSender : MonoBehaviour
     int _width, _height;
     Interop.Send _send;
     FormatConverter _converter;
-    FrameQueue _frameQueue;
+    FramePool _framePool;
     System.Action<AsyncGPUReadbackRequest> _onReadback;
 
     void PrepareInternalObjects()
@@ -22,7 +22,7 @@ public sealed partial class NdiSender : MonoBehaviour
               SharedInstance.GameViewSend : Interop.Send.Create(_ndiName);
         if (_converter == null) _converter = new FormatConverter(_resources);
         if (_onReadback == null) _onReadback = OnReadback;
-        if (_frameQueue == null) _frameQueue = new FrameQueue();
+        if (_framePool == null) _framePool = new FramePool();
     }
 
     void ReleaseInternalObjects()
@@ -38,14 +38,8 @@ public sealed partial class NdiSender : MonoBehaviour
         _converter?.Dispose();
         _converter = null;
 
-        _frameQueue?.Dispose();
-        _frameQueue = null;
-
-        if (_lastSent.IsValid)
-        {
-            _lastSent.Dispose();
-            _lastSent = default(FrameEntry);
-        }
+        _framePool?.Dispose();
+        _framePool = null;
     }
 
     #endregion
@@ -99,12 +93,11 @@ public sealed partial class NdiSender : MonoBehaviour
             var converted = CaptureImmediate();
             if (converted == null) continue;
 
-            var entry = _frameQueue.Allocate
+            // GPU readback request
+            var entry = _framePool.Allocate
               (_width, _height, enableAlpha, metadata);
-
-            var buffer = entry.ImageBuffer;
             AsyncGPUReadback.RequestIntoNativeArray
-              (ref buffer, converted, _onReadback);
+              (ref entry.ImageBuffer, converted, _onReadback);
         }
     }
 
@@ -129,60 +122,49 @@ public sealed partial class NdiSender : MonoBehaviour
           (cb, source, _width, _height, _enableAlpha, true);
 
         // GPU readback request
-        var entry = _frameQueue.Allocate
+        var entry = _framePool.Allocate
           (_width, _height, enableAlpha, metadata);
-
-        var buffer = entry.ImageBuffer;
         cb.RequestAsyncReadbackIntoNativeArray
-          (ref buffer, converted, _onReadback);
+          (ref entry.ImageBuffer, converted, _onReadback);
     }
 
     #endregion
 
     #region GPU readback completion callback
 
-    FrameEntry _lastSent;
-
-    unsafe void OnReadback(AsyncGPUReadbackRequest request)
+    unsafe void OnReadback(AsyncGPUReadbackRequest req)
     {
-        var entry = _frameQueue.Retrieve(request.GetData<byte>());
-
+        // Retrieve the frame entry using the readback buffer as a key.
+        var entry = _framePool.FindByImageBuffer(req.GetData<byte>());
         if (!entry.IsValid) return;
 
-        // Ignore errors.
-        if (request.hasError)
+        // Readback error or inactive sender: Free the frame entry and break.
+        if (req.hasError || _send == null || _send.IsInvalid || _send.IsClosed)
         {
-            entry.Dispose();
+            _framePool.Free(entry);
             return;
         }
 
-        // Ignore it if the NDI object has been already disposed.
-        if (_send == null || _send.IsInvalid || _send.IsClosed)
-        {
-            entry.Dispose();
-            return;
-        }
-
-        // Pixel format (depending on alpha mode)
-        var fourcc = _enableAlpha ?
-          Interop.FourCC.UYVA : Interop.FourCC.UYVY;
-
-        // Frame data setup
+        // Frame data
         var frame = new Interop.VideoFrame
-          { Width = entry.Width,
-            Height = entry.Height,
-            LineStride = entry.Width * 2,
-            FourCC = entry.AlphaFlag ?
-              Interop.FourCC.UYVA : Interop.FourCC.UYVY,
+          { Width       = entry.Width,
+            Height      = entry.Height,
+            LineStride  = entry.Stride,
+            FourCC      = entry.FourCC,
             FrameFormat = Interop.FrameFormat.Progressive,
-            Data = entry.ImagePointer,
-            Metadata = entry.Metadata };
+            Data        = entry.ImagePointer,
+            Metadata    = entry.MetadataPointer };
 
-        // Send via NDI
+        // Start sending this frame.
+        // This causes a synchronization for the last frame -- i.e., It locks
+        // the thread if the last frame is still under processing.
         _send.SendVideoAsync(frame);
 
-        _lastSent.Dispose();
-        _lastSent = entry;
+        // We don't need the last frame anymore; Let it freed.
+        _framePool.FreeMarked();
+
+        // Mark this frame to be freed up in the next frame.
+        _framePool.Mark(entry);
     }
 
     #endregion

@@ -1,95 +1,153 @@
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using UnityEngine.Rendering;
 
+using Debug = UnityEngine.Debug;
 using IDisposable = System.IDisposable;
 using IntPtr = System.IntPtr;
 using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Klak.Ndi {
 
-public readonly struct FrameEntry : IDisposable
+sealed class FrameEntry
 {
-    readonly NativeArray<byte> _image;
-    readonly IntPtr _metadata;
-    readonly int _width, _height;
-    readonly bool _alpha;
+    #region Private members
 
-    public NativeArray<byte> ImageBuffer
-      => _image;
+    NativeArray<byte> _image;
+    IntPtr _metadata;
+    int _width, _height;
+    bool _alpha;
 
-    public unsafe IntPtr ImagePointer
-      => (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(_image);
+    ~FrameEntry()
+    {
+        if (IsValid) Debug.LogWarning("FrameEntry leak was detected.");
+    }
 
-    public IntPtr Metadata => _metadata;
+    #endregion
 
+    #region Public accessors
+
+    public ref NativeArray<byte> ImageBuffer => ref _image;
+    public IntPtr MetadataPointer => _metadata;
     public int Width => _width;
     public int Height => _height;
     public bool AlphaFlag => _alpha;
 
+    public unsafe IntPtr ImagePointer
+      => (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(_image);
+
+    public int Stride => Width * 2;
+
+    public Interop.FourCC FourCC
+      => _alpha ? Interop.FourCC.UYVA : Interop.FourCC.UYVY;
+
     public bool IsValid => _image.IsCreated;
 
-    public FrameEntry(int width, int height, bool alpha, string metadata)
+    #endregion
+
+    #region Resource allocation/deallocation
+
+    public void Open(int width, int height, bool alpha, string metadata)
     {
-        var size =
-          Util.FrameDataCount(width, height, alpha) * sizeof(uint);
+        // Image buffer
+        var size = Util.FrameDataCount(width, height, alpha) * sizeof(uint);
+        _image = new NativeArray<byte>(size, Allocator.Persistent,
+                                       NativeArrayOptions.UninitializedMemory);
 
-        _image = new NativeArray<byte>
-          (size, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-
+        // Metadata string on heap
         if (string.IsNullOrEmpty(metadata))
             _metadata = IntPtr.Zero;
         else
             _metadata = (IntPtr)Marshal.StringToHGlobalAnsi(metadata);
 
+        // Values
         (_width, _height, _alpha) = (width, height, alpha);
     }
 
-    public void Dispose()
+    public void Close()
     {
-        if (_image.IsCreated) _image.Dispose();
-        if (_metadata != IntPtr.Zero) Marshal.FreeHGlobal(_metadata);
+        if (_image.IsCreated)
+        {
+            _image.Dispose();
+            _image = default(NativeArray<byte>);
+        }
+
+        if (_metadata != IntPtr.Zero)
+        {
+            Marshal.FreeHGlobal(_metadata);
+            _metadata = IntPtr.Zero;
+        }
+
+        (_width, _height, _alpha) = (0, 0, false);
     }
+
+    #endregion
 }
 
-public class FrameQueue : IDisposable
+sealed class FramePool : IDisposable
 {
-    List<FrameEntry> _entries;
+    #region Private members
 
-    public FrameQueue()
-    {
-        _entries = new List<FrameEntry>();
-    }
+    List<FrameEntry> _hot = new List<FrameEntry>();
+    Stack<FrameEntry> _cold = new Stack<FrameEntry>();
+    FrameEntry _marked;
+
+    #endregion
+
+    #region IDisposable implementation
 
     public void Dispose()
     {
-        if (_entries != null)
-            foreach (var e in _entries) e.Dispose();
-        _entries = null;
+        foreach (var e in _hot ) e.Close();
+        foreach (var e in _cold) e.Close();
+        _hot .Clear();
+        _cold.Clear();
     }
+
+    #endregion
+
+    #region Pool operations
 
     public FrameEntry Allocate(int width, int height, bool alpha, string metadata)
     {
-        var entry = new FrameEntry(width, height, alpha, metadata);
-        _entries.Add(entry);
+        var entry = _cold.Count > 0 ? _cold.Pop() : new FrameEntry();
+        entry.Open(width, height, alpha, metadata);
+        _hot.Add(entry);
         return entry;
     }
 
-    public unsafe FrameEntry Retrieve(NativeArray<byte> image)
+    public void Free(FrameEntry entry)
     {
-        var pimage = (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(image);
-        for (var i = 0; i < _entries.Count; i++)
-        {
-            if (pimage == _entries[i].ImagePointer)
-            {
-                var e = _entries[i];
-                _entries.RemoveAt(i);
-                return e;
-            }
-        }
-        return default(FrameEntry);
+        entry.Close();
+        _hot.Remove(entry);
+        _cold.Push(entry);
     }
+
+    public unsafe FrameEntry FindByImageBuffer(NativeArray<byte> buffer)
+    {
+        var pimage =
+          (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(buffer);
+
+        foreach (var entry in _hot)
+            if (entry.ImagePointer == pimage) return entry;
+
+        return null;
+    }
+
+    public void Mark(FrameEntry entry)
+    {
+        Debug.Assert(_marked == null, "Marked twice.");
+        _marked = entry;
+    }
+
+    public void FreeMarked()
+    {
+        if (_marked == null) return;
+        Free(_marked);
+        _marked = null;
+    }
+
+    #endregion
 }
 
 } // namespace Klak.Ndi
