@@ -146,4 +146,4 @@ sealed class FormatConverter : System.IDisposable
     #endregion
 }
 
-}
+} // namespace Klak.Ndi
