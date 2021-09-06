@@ -7,8 +7,8 @@ namespace Klak.Ndi
 {
     static class Util
     {
-        public static int FrameDataCount(int width, int height, bool alpha)
-          => width * height * (alpha ? 3 : 2) / 4;
+        public static int FrameDataSize(int width, int height, bool alpha)
+          => width * height * (alpha ? 3 : 2);
 
         public static bool CheckAlpha(Interop.FourCC fourCC)
           => fourCC == Interop.FourCC.UYVA;

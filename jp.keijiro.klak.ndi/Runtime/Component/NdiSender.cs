@@ -11,8 +11,8 @@ public sealed partial class NdiSender : MonoBehaviour
 
     int _width, _height;
     Interop.Send _send;
+    ReadbackPool _pool;
     FormatConverter _converter;
-    FramePool _framePool;
     System.Action<AsyncGPUReadbackRequest> _onReadback;
 
     void PrepareInternalObjects()
@@ -20,9 +20,9 @@ public sealed partial class NdiSender : MonoBehaviour
         if (_send == null)
             _send = _captureMethod == CaptureMethod.GameView ?
               SharedInstance.GameViewSend : Interop.Send.Create(_ndiName);
+        if (_pool == null) _pool = new ReadbackPool();
         if (_converter == null) _converter = new FormatConverter(_resources);
         if (_onReadback == null) _onReadback = OnReadback;
-        if (_framePool == null) _framePool = new FramePool();
     }
 
     void ReleaseInternalObjects()
@@ -35,11 +35,11 @@ public sealed partial class NdiSender : MonoBehaviour
             _send.Dispose();
         _send = null;
 
+        _pool?.Dispose();
+        _pool = null;
+
         _converter?.Dispose();
         _converter = null;
-
-        _framePool?.Dispose();
-        _framePool = null;
     }
 
     #endregion
@@ -94,8 +94,7 @@ public sealed partial class NdiSender : MonoBehaviour
             if (converted == null) continue;
 
             // GPU readback request
-            var entry = _framePool.Allocate
-              (_width, _height, enableAlpha, metadata);
+            var entry = _pool.NewEntry(_width, _height, enableAlpha, metadata);
             AsyncGPUReadback.RequestIntoNativeArray
               (ref entry.ImageBuffer, converted, _onReadback);
         }
@@ -122,8 +121,7 @@ public sealed partial class NdiSender : MonoBehaviour
           (cb, source, _width, _height, _enableAlpha, true);
 
         // GPU readback request
-        var entry = _framePool.Allocate
-          (_width, _height, enableAlpha, metadata);
+        var entry = _pool.NewEntry(_width, _height, enableAlpha, metadata);
         cb.RequestAsyncReadbackIntoNativeArray
           (ref entry.ImageBuffer, converted, _onReadback);
     }
@@ -134,14 +132,14 @@ public sealed partial class NdiSender : MonoBehaviour
 
     unsafe void OnReadback(AsyncGPUReadbackRequest req)
     {
-        // Retrieve the frame entry using the readback buffer as a key.
-        var entry = _framePool.FindByImageBuffer(req.GetData<byte>());
-        if (!entry.IsValid) return;
+        // Retrieve the readback entry using the buffer reference as a key.
+        var entry = _pool.FindEntry(req.GetData<byte>());
+        if (!entry.IsAllocated) return;
 
         // Readback error or inactive sender: Free the frame entry and break.
         if (req.hasError || _send == null || _send.IsInvalid || _send.IsClosed)
         {
-            _framePool.Free(entry);
+            _pool.Free(entry);
             return;
         }
 
@@ -161,10 +159,10 @@ public sealed partial class NdiSender : MonoBehaviour
         _send.SendVideoAsync(frame);
 
         // We don't need the last frame anymore; Let it freed.
-        _framePool.FreeMarked();
+        _pool.FreeMarkedEntry();
 
         // Mark this frame to be freed up in the next frame.
-        _framePool.Mark(entry);
+        _pool.Mark(entry);
     }
 
     #endregion

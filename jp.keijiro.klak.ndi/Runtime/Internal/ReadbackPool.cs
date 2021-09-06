@@ -9,7 +9,19 @@ using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Klak.Ndi {
 
-sealed class FrameEntry
+//
+// Frame readback entry class
+//
+// Stores information about single-frame readback.
+//
+// We need this class because:
+// - Async GPU readback requires a NativeArray as a destination.
+// - A readback request only provides a data pointer; We have to store other
+//   information (dimensions, metadata, etc.) elsewhere.
+//
+// This class is reusable; You can call Allocate after Deallocate.
+//
+sealed class ReadbackEntry
 {
     #region Private members
 
@@ -18,9 +30,10 @@ sealed class FrameEntry
     int _width, _height;
     bool _alpha;
 
-    ~FrameEntry()
+    ~ReadbackEntry()
     {
-        if (IsValid) Debug.LogWarning("FrameEntry leak was detected.");
+        if (IsAllocated)
+            Debug.LogWarning("ReadbackEntry leakage was detected.");
     }
 
     #endregion
@@ -31,26 +44,25 @@ sealed class FrameEntry
     public IntPtr MetadataPointer => _metadata;
     public int Width => _width;
     public int Height => _height;
-    public bool AlphaFlag => _alpha;
+
+    public bool IsAllocated => _image.IsCreated;
+
+    public int Stride => Width * 2;
 
     public unsafe IntPtr ImagePointer
       => (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(_image);
 
-    public int Stride => Width * 2;
-
     public Interop.FourCC FourCC
       => _alpha ? Interop.FourCC.UYVA : Interop.FourCC.UYVY;
-
-    public bool IsValid => _image.IsCreated;
 
     #endregion
 
     #region Resource allocation/deallocation
 
-    public void Open(int width, int height, bool alpha, string metadata)
+    public void Allocate(int width, int height, bool alpha, string metadata)
     {
         // Image buffer
-        var size = Util.FrameDataCount(width, height, alpha) * sizeof(uint);
+        var size = Util.FrameDataSize(width, height, alpha);
         _image = new NativeArray<byte>(size, Allocator.Persistent,
                                        NativeArrayOptions.UninitializedMemory);
 
@@ -60,11 +72,11 @@ sealed class FrameEntry
         else
             _metadata = (IntPtr)Marshal.StringToHGlobalAnsi(metadata);
 
-        // Values
+        // Frame settings
         (_width, _height, _alpha) = (width, height, alpha);
     }
 
-    public void Close()
+    public void Deallocate()
     {
         if (_image.IsCreated)
         {
@@ -84,13 +96,22 @@ sealed class FrameEntry
     #endregion
 }
 
-sealed class FramePool : IDisposable
+//
+// Frame readback pool class
+//
+// Stores ongoing readback entries (hot) and recycled entries (cold).
+//
+// There is a tricky part: The "Marked" entry holds an entry that has been
+// completed but still under processing by the NDI async sender. It's expected
+// to be freed in the next frame by calling FreeMarked.
+//
+sealed class ReadbackPool : IDisposable
 {
     #region Private members
 
-    List<FrameEntry> _hot = new List<FrameEntry>();
-    Stack<FrameEntry> _cold = new Stack<FrameEntry>();
-    FrameEntry _marked;
+    List<ReadbackEntry> _hot = new List<ReadbackEntry>();
+    Stack<ReadbackEntry> _cold = new Stack<ReadbackEntry>();
+    ReadbackEntry _marked;
 
     #endregion
 
@@ -98,8 +119,8 @@ sealed class FramePool : IDisposable
 
     public void Dispose()
     {
-        foreach (var e in _hot ) e.Close();
-        foreach (var e in _cold) e.Close();
+        foreach (var e in _hot ) e.Deallocate();
+        foreach (var e in _cold) e.Deallocate();
         _hot .Clear();
         _cold.Clear();
     }
@@ -108,39 +129,36 @@ sealed class FramePool : IDisposable
 
     #region Pool operations
 
-    public FrameEntry Allocate(int width, int height, bool alpha, string metadata)
+    public ReadbackEntry
+      NewEntry(int width, int height, bool alpha, string metadata)
     {
-        var entry = _cold.Count > 0 ? _cold.Pop() : new FrameEntry();
-        entry.Open(width, height, alpha, metadata);
+        var entry = _cold.Count > 0 ? _cold.Pop() : new ReadbackEntry();
+        entry.Allocate(width, height, alpha, metadata);
         _hot.Add(entry);
         return entry;
     }
 
-    public void Free(FrameEntry entry)
+    public void Free(ReadbackEntry entry)
     {
-        entry.Close();
+        entry.Deallocate();
         _hot.Remove(entry);
         _cold.Push(entry);
     }
 
-    public unsafe FrameEntry FindByImageBuffer(NativeArray<byte> buffer)
+    public unsafe ReadbackEntry FindEntry(in NativeArray<byte> buffer)
     {
-        var pimage =
-          (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(buffer);
-
-        foreach (var entry in _hot)
-            if (entry.ImagePointer == pimage) return entry;
-
+        var p = (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(buffer);
+        foreach (var entry in _hot) if (entry.ImagePointer == p) return entry;
         return null;
     }
 
-    public void Mark(FrameEntry entry)
+    public void Mark(ReadbackEntry entry)
     {
         Debug.Assert(_marked == null, "Marked twice.");
         _marked = entry;
     }
 
-    public void FreeMarked()
+    public void FreeMarkedEntry()
     {
         if (_marked == null) return;
         Free(_marked);
