@@ -95,7 +95,6 @@ sealed class FormatConverter : System.IDisposable
     #region Decoder implementation
 
     ComputeBuffer _decoderInput;
-    ComputeDataSetter _decoderSetter;
     RenderTexture _decoderOutput;
 
     public RenderTexture LastDecoderOutput => _decoderOutput;
@@ -117,10 +116,7 @@ sealed class FormatConverter : System.IDisposable
 
         // Input buffer allocation
         if (_decoderInput == null)
-        {
             _decoderInput = new ComputeBuffer(dataCount, 4);
-            _decoderSetter = new ComputeDataSetter(_decoderInput);
-        }
 
         // Output buffer allocation
         if (_decoderOutput == null)
@@ -131,7 +127,7 @@ sealed class FormatConverter : System.IDisposable
         }
 
         // Input buffer update
-        _decoderSetter.SetData(data, dataCount, 4);
+        _decoderInput.SetData(data, dataCount, 4);
 
         // Decoder compute dispatching
         var compute = _resources.decoderCompute;

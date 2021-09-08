@@ -1,6 +1,6 @@
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
-using BindingFlags = System.Reflection.BindingFlags;
-using Delegate = System.Delegate;
 using IntPtr = System.IntPtr;
 
 namespace Klak.Ndi
@@ -14,31 +14,27 @@ namespace Klak.Ndi
           => fourCC == Interop.FourCC.UYVA;
     }
 
-    //
-    // Directly load an unmanaged data array to a compute buffer via an
-    // Intptr. This is not a public interface so will be broken one day.
-    // DO NOT TRY AT HOME.
-    //
-    class ComputeDataSetter
+    // Extension method to add IntPtr support to ComputeBuffer.SetData
+    static class ComputeBufferExtension
     {
-        delegate void SetDataDelegate
-          (IntPtr pointer, int s_offs, int d_offs, int count, int stride);
-
-        SetDataDelegate _setData;
-
-        public ComputeDataSetter(ComputeBuffer buffer)
+        public unsafe static void SetData
+          (this ComputeBuffer buffer, IntPtr pointer, int count, int stride)
         {
-            var method = typeof(ComputeBuffer).GetMethod
-              ("InternalSetNativeData",
-               BindingFlags.InvokeMethod |
-               BindingFlags.NonPublic |
-               BindingFlags.Instance);
+            // NativeArray view for the unmanaged memory block
+            var view =
+              NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<byte>
+                ((void*)pointer, count * stride, Allocator.None);
 
-            _setData = (SetDataDelegate)Delegate.CreateDelegate
-              (typeof(SetDataDelegate), buffer, method);
+            #if ENABLE_UNITY_COLLECTIONS_CHECKS
+            var safety = AtomicSafetyHandle.Create();
+            NativeArrayUnsafeUtility.SetAtomicSafetyHandle(ref view, safety);
+            #endif
+
+            buffer.SetData(view);
+
+            #if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.Release(safety);
+            #endif
         }
-
-        public void SetData(IntPtr pointer, int count, int stride)
-          => _setData(pointer, 0, 0, count, stride);
     }
 }

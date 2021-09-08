@@ -70,7 +70,7 @@ sealed class ReadbackEntry
         if (string.IsNullOrEmpty(metadata))
             _metadata = IntPtr.Zero;
         else
-            _metadata = (IntPtr)Marshal.StringToHGlobalAnsi(metadata);
+            _metadata = Marshal.StringToHGlobalAnsi(metadata);
 
         // Frame settings
         (_width, _height, _alpha) = (width, height, alpha);
