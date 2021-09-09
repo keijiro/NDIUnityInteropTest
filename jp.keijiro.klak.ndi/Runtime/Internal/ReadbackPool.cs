@@ -1,11 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-
-using Debug = UnityEngine.Debug;
-using IDisposable = System.IDisposable;
-using IntPtr = System.IntPtr;
-using Marshal = System.Runtime.InteropServices.Marshal;
+using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Klak.Ndi {
 
@@ -16,7 +15,7 @@ namespace Klak.Ndi {
 //
 // We need this class because:
 // - Async GPU readback requires a NativeArray as a destination.
-// - A readback request only provides a data pointer; We have to store other
+// - A readback request only carries a data pointer; We have to store other
 //   information (dimensions, metadata, etc.) elsewhere.
 //
 // This class is reusable; You can call Allocate after Deallocate.
@@ -32,7 +31,7 @@ sealed class ReadbackEntry
 
     ~ReadbackEntry()
     {
-        if (IsAllocated)
+        if (_image.IsCreated)
             Debug.LogWarning("ReadbackEntry leakage was detected.");
     }
 
@@ -40,15 +39,11 @@ sealed class ReadbackEntry
 
     #region Public accessors
 
-    public ref NativeArray<byte> ImageBuffer => ref _image;
-    public IntPtr MetadataPointer => _metadata;
     public int Width => _width;
+    public int Stride => _width * 2;
     public int Height => _height;
 
-    public bool IsAllocated => _image.IsCreated;
-
-    public int Stride => Width * 2;
-
+    public IntPtr MetadataPointer => _metadata;
     public unsafe IntPtr ImagePointer
       => (IntPtr)NativeArrayUnsafeUtility.GetUnsafeReadOnlyPtr(_image);
 
@@ -62,9 +57,9 @@ sealed class ReadbackEntry
     public void Allocate(int width, int height, bool alpha, string metadata)
     {
         // Image buffer
-        var size = Util.FrameDataSize(width, height, alpha);
-        _image = new NativeArray<byte>(size, Allocator.Persistent,
-                                       NativeArrayOptions.UninitializedMemory);
+        _image = new NativeArray<byte>
+          (Util.FrameDataSize(width, height, alpha),
+           Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
 
         // Metadata string on heap
         if (string.IsNullOrEmpty(metadata))
@@ -92,6 +87,18 @@ sealed class ReadbackEntry
 
         (_width, _height, _alpha) = (0, 0, false);
     }
+
+    #endregion
+
+    #region Readback request initiators
+
+    public void RequestReadback
+      (ComputeBuffer source, Action<AsyncGPUReadbackRequest> callback)
+      => AsyncGPUReadback.RequestIntoNativeArray(ref _image, source, callback);
+
+    public void RequestReadback
+      (CommandBuffer command, ComputeBuffer source, Action<AsyncGPUReadbackRequest> callback)
+      => command.RequestAsyncReadbackIntoNativeArray(ref _image, source, callback);
 
     #endregion
 }
