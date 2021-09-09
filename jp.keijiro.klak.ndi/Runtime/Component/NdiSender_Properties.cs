@@ -12,13 +12,20 @@ public sealed partial class NdiSender : MonoBehaviour
 
     public string ndiName
       { get => _ndiName;
-        set { _ndiName = value; Restart(); } }
+        set => ChangeNdiName(value); }
 
-    [SerializeField] bool _enableAlpha = false;
+    void ChangeNdiName(string name)
+    {
+        if (_ndiName == name) return;
+        _ndiName = name;
+        Restart();
+    }
 
-    public bool enableAlpha
-      { get => _enableAlpha;
-        set => _enableAlpha = value; }
+    [SerializeField] bool _keepAlpha = false;
+
+    public bool keepAlpha
+      { get => _keepAlpha;
+        set => _keepAlpha = value; }
 
     #endregion
 
@@ -28,13 +35,27 @@ public sealed partial class NdiSender : MonoBehaviour
 
     public CaptureMethod captureMethod
       { get => _captureMethod;
-        set { _captureMethod = value; Restart(); } }
+        set => ChangeCaptureMethod(value); }
+
+    void ChangeCaptureMethod(CaptureMethod method)
+    {
+        if (_captureMethod == method) return;
+        _captureMethod = method;
+        Restart();
+    }
 
     [SerializeField] Camera _sourceCamera = null;
 
     public Camera sourceCamera
       { get => _sourceCamera;
-        set { _sourceCamera = value; ResetState(); } }
+        set => ChangeSourceCamera(value); }
+
+    void ChangeSourceCamera(Camera camera)
+    {
+        if (_sourceCamera == camera) return;
+        _sourceCamera = camera;
+        ResetState();
+    }
 
     [SerializeField] Texture _sourceTexture = null;
 

@@ -67,10 +67,10 @@ public sealed partial class NdiSender : MonoBehaviour
                 var (w, h) = (_sourceTexture.width, _sourceTexture.height);
 
                 // Pixel format conversion
-                var buffer = _converter.Encode(_sourceTexture, _enableAlpha, true);
+                var buffer = _converter.Encode(_sourceTexture, _keepAlpha, true);
 
                 // Readback entry allocation and request
-                _pool.NewEntry(w, h, _enableAlpha, metadata)
+                _pool.NewEntry(w, h, _keepAlpha, metadata)
                      .RequestReadback(buffer, _onReadback);
             }
 
@@ -83,11 +83,11 @@ public sealed partial class NdiSender : MonoBehaviour
                 ScreenCapture.CaptureScreenshotIntoRenderTexture(tempRT);
 
                 // Pixel format conversion
-                var buffer = _converter.Encode(tempRT, _enableAlpha, false);
+                var buffer = _converter.Encode(tempRT, _keepAlpha, false);
                 RenderTexture.ReleaseTemporary(tempRT);
 
                 // Readback entry allocation and request
-                _pool.NewEntry(w, h, _enableAlpha, metadata)
+                _pool.NewEntry(w, h, _keepAlpha, metadata)
                      .RequestReadback(buffer, _onReadback);
             }
         }
@@ -107,10 +107,10 @@ public sealed partial class NdiSender : MonoBehaviour
 
         // Pixel format conversion
         var (w, h) = (_sourceCamera.pixelWidth, _sourceCamera.pixelHeight);
-        var buffer = _converter.Encode(cb, source, w, h, _enableAlpha, true);
+        var buffer = _converter.Encode(cb, source, w, h, _keepAlpha, true);
 
         // Readback entry allocation and request
-        _pool.NewEntry(w, h, enableAlpha, metadata)
+        _pool.NewEntry(w, h, _keepAlpha, metadata)
              .RequestReadback(buffer, _onReadback);
     }
 

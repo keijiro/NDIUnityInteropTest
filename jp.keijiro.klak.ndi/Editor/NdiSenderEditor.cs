@@ -7,69 +7,69 @@ namespace Klak.Ndi.Editor {
 [CustomEditor(typeof(NdiSender))]
 sealed class NdiSenderEditor : UnityEditor.Editor
 {
-    SerializedProperty _ndiName;
-    SerializedProperty _enableAlpha;
-    SerializedProperty _captureMethod;
-    SerializedProperty _sourceCamera;
-    SerializedProperty _sourceTexture;
-
-    static class Styles
+    static class Labels
     {
         public static Label NdiName = "NDI Name";
     }
 
-    void OnEnable()
-    {
-        var finder = new PropertyFinder(serializedObject);
-        _ndiName = finder["_ndiName"];
-        _enableAlpha = finder["_enableAlpha"];
-        _captureMethod = finder["_captureMethod"];
-        _sourceCamera = finder["_sourceCamera"];
-        _sourceTexture = finder["_sourceTexture"];
-    }
+    AutoProperty _ndiName;
+    AutoProperty _keepAlpha;
+    AutoProperty _captureMethod;
+    AutoProperty _sourceCamera;
+    AutoProperty _sourceTexture;
+
+    void OnEnable() => AutoProperty.Scan(this);
 
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
 
-        var restart = false;
+        // To update the NdiSender internal state on property modification, we
+        // also manually update the C# properties.
 
-        if (_captureMethod.hasMultipleDifferentValues ||
-            _captureMethod.enumValueIndex != (int)CaptureMethod.GameView)
+        // NDI Name
+        if (_captureMethod.Target.hasMultipleDifferentValues ||
+            _captureMethod.Target.enumValueIndex != (int)CaptureMethod.GameView)
         {
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.DelayedTextField(_ndiName, Styles.NdiName);
-            restart |= EditorGUI.EndChangeCheck();
+            EditorGUILayout.DelayedTextField(_ndiName, Labels.NdiName);
+            if (EditorGUI.EndChangeCheck()) // update-on-mod
+                foreach (NdiSender send in targets)
+                    send.ndiName = _ndiName.Target.stringValue;
         }
 
-        EditorGUILayout.PropertyField(_enableAlpha);
+        // Keep Alpha
+        EditorGUILayout.PropertyField(_keepAlpha);
 
+        // Capture Method
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(_captureMethod);
-        var reset = EditorGUI.EndChangeCheck();
+        if (EditorGUI.EndChangeCheck()) // update-on-mod
+            foreach (NdiSender send in targets)
+                send.captureMethod = (CaptureMethod)_captureMethod.Target.enumValueIndex;
 
         EditorGUI.indentLevel++;
 
-        if (_captureMethod.hasMultipleDifferentValues ||
-            _captureMethod.enumValueIndex == (int)CaptureMethod.Camera)
+        // Source Camera
+        if (_captureMethod.Target.hasMultipleDifferentValues ||
+            _captureMethod.Target.enumValueIndex == (int)CaptureMethod.Camera)
         {
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(_sourceCamera);
-            reset |= EditorGUI.EndChangeCheck();
+            if (EditorGUI.EndChangeCheck()) // update-on-mod
+                foreach (NdiSender send in targets)
+                    send.sourceCamera = (Camera)_sourceCamera.Target.objectReferenceValue;
         }
 
-        if (_captureMethod.hasMultipleDifferentValues ||
-            _captureMethod.enumValueIndex == (int)CaptureMethod.Texture)
+        // Source Texture
+        if (_captureMethod.Target.hasMultipleDifferentValues ||
+            _captureMethod.Target.enumValueIndex == (int)CaptureMethod.Texture)
             EditorGUILayout.PropertyField(_sourceTexture);
 
         EditorGUI.indentLevel--;
 
         serializedObject.ApplyModifiedProperties();
-
-        // Restart or reset the sender on property changes.
-        if (restart) foreach (NdiSender ns in targets) ns.Restart();
-        if (reset) foreach (NdiSender ns in targets) ns.ResetState();
     }
 }
 
-}
+} // namespace Klak.Ndi.Editor
