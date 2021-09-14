@@ -47,4 +47,4 @@ sealed class MetadataQueue
     #endregion
 }
 
-}
+} // namespace Klak.Ndi

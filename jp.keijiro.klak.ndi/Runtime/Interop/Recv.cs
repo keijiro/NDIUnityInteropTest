@@ -90,4 +90,4 @@ public class Recv : SafeHandleZeroOrMinusOneIsInvalid
     #endregion
 }
 
-}
+} // namespace Klak.Ndi.Interop

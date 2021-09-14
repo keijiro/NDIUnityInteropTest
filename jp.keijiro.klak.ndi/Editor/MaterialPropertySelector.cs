@@ -82,4 +82,4 @@ static class MaterialPropertySelector
     #endregion
 }
 
-}
+} // namespace Klak.Ndi.Editor

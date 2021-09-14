@@ -73,4 +73,4 @@ static class SharedInstance
     #endregion
 }
 
-}
+} // namespace Klak.Ndi
