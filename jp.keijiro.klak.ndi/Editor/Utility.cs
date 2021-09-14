@@ -16,18 +16,6 @@ struct Label
       => new Label { _guiContent = new GUIContent(text) };
 }
 
-// Utilities for finding serialized properties
-struct PropertyFinder
-{
-    SerializedObject _so;
-
-    public PropertyFinder(SerializedObject so)
-      => _so = so;
-
-    public SerializedProperty this[string name]
-      => _so.FindProperty(name);
-}
-
 // Auto-scanning serialized property wrapper
 struct AutoProperty
 {
