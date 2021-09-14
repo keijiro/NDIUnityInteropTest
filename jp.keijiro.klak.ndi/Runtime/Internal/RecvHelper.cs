@@ -2,6 +2,7 @@ using IntPtr = System.IntPtr;
 
 namespace Klak.Ndi {
 
+// Small helper class for NDI recv interop
 static class RecvHelper
 {
     public static Interop.Source? FindSource(string sourceName)

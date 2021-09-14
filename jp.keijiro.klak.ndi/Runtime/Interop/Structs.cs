@@ -48,14 +48,8 @@ public struct Source
 {
     IntPtr _NdiName;
     IntPtr _UrlAddress;
-
-#if KLAK_NDI_NET_STANDARD_2_1
-    public string NdiName => Marshal.PtrToStringUTF8(_NdiName);
-    public string UrlAddress => Marshal.PtrToStringUTF8(_UrlAddress);
-#else
     public string NdiName => Marshal.PtrToStringAnsi(_NdiName);
     public string UrlAddress => Marshal.PtrToStringAnsi(_UrlAddress);
-#endif
 }
 
 // Video frame descriptor (equivalent to NDILib_video_frame_v2_t)
