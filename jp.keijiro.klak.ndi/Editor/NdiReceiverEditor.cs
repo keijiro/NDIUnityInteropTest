@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System.Linq;
 
 namespace Klak.Ndi.Editor {
 
@@ -27,15 +28,12 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
     void ShowNdiNameDropdown(Rect rect)
     {
         var menu = new GenericMenu();
-        var sources = SharedInstance.Find.CurrentSources;
+        var sources = NdiFinder.sourceNames;
 
-        if (sources.Length > 0)
+        if (sources.Any())
         {
-            foreach (var source in sources)
-            {
-                var name = source.NdiName;
+            foreach (var name in sources)
                 menu.AddItem(new GUIContent(name), false, OnSelectName, name);
-            }
         }
         else
         {

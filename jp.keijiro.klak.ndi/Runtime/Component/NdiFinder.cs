@@ -15,4 +15,4 @@ public static class NdiFinder
     }
 }
 
-}
+} // namespace Klak.Ndi
