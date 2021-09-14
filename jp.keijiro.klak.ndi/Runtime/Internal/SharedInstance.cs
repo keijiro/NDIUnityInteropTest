@@ -1,12 +1,15 @@
 namespace Klak.Ndi {
 
+// A wrangler class managing singleton-like shared object instances
 static class SharedInstance
 {
     #region Public properties
 
+    // NDI find object
     static public Interop.Find Find
       => _find ?? InitializeFind();
 
+    // NDI send object for the game view
     static public Interop.Send GameViewSend
       => _gameViewSend ?? InitializeGameViewSend();
 
@@ -39,10 +42,8 @@ static class SharedInstance
 
     #region Finalizer implementatioin
 
-    //
-    // We have to clean up the shared objects on a domain reload that only
-    // happens on Editor, so we do nothing on Player.
-    //
+    // We have to clean up the shared objects on a domain reload.
+    // (This happens only on Editor.)
 
     #if UNITY_EDITOR
 
