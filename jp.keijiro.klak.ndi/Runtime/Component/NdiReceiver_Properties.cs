@@ -9,15 +9,20 @@ public sealed partial class NdiReceiver : MonoBehaviour
     [SerializeField] string _ndiName = null;
 
     public string ndiName
-      { get => _ndiName;
-        set => ChangeNdiName(value); }
+      { get => _ndiNameRuntime;
+        set => SetNdiName(value); }
 
-    void ChangeNdiName(string name)
+    string _ndiNameRuntime;
+
+    void SetNdiName(string name)
     {
-        if (_ndiName == name) return;
-        _ndiName = name;
+        if (_ndiNameRuntime == name) return;
+        _ndiName = _ndiNameRuntime = name;
         Restart();
     }
+
+    void OnValidate()
+      => ndiName = _ndiName;
 
     #endregion
 

@@ -12,11 +12,15 @@ sealed class NdiSenderEditor : UnityEditor.Editor
         public static Label NdiName = "NDI Name";
     }
 
+    #pragma warning disable CS0649
+
     AutoProperty _ndiName;
     AutoProperty _keepAlpha;
     AutoProperty _captureMethod;
     AutoProperty _sourceCamera;
     AutoProperty _sourceTexture;
+
+    #pragma warning restore
 
     void OnEnable() => AutoProperty.Scan(this);
 

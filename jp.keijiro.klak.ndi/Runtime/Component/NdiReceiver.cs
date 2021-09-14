@@ -16,7 +16,7 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     void PrepareReceiverObjects()
     {
-        if (_recv == null) _recv = RecvHelper.TryCreateRecv(_ndiName);
+        if (_recv == null) _recv = RecvHelper.TryCreateRecv(ndiName);
         if (_converter == null) _converter = new FormatConverter(_resources);
         if (_override == null) _override = new MaterialPropertyBlock();
     }
@@ -28,6 +28,8 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
         _converter?.Dispose();
         _converter = null;
+
+        // We don't dispose _override because it's reusable.
     }
 
     #endregion
@@ -78,16 +80,15 @@ public sealed partial class NdiReceiver : MonoBehaviour
         if (rt == null) return;
 
         // Material property override
-        if (_targetRenderer != null)
+        if (targetRenderer != null)
         {
-            _targetRenderer.GetPropertyBlock(_override);
-            _override.SetTexture(_targetMaterialProperty, rt);
-            _targetRenderer.SetPropertyBlock(_override);
+            targetRenderer.GetPropertyBlock(_override);
+            _override.SetTexture(targetMaterialProperty, rt);
+            targetRenderer.SetPropertyBlock(_override);
         }
 
         // External texture update
-        if (_targetTexture != null)
-            Graphics.Blit(rt, _targetTexture);
+        if (targetTexture != null) Graphics.Blit(rt, targetTexture);
     }
 
     #endregion

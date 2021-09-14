@@ -14,20 +14,14 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
         public static Label Select = "Select";
     }
 
+    #pragma warning disable CS0649
+
     AutoProperty _ndiName;
     AutoProperty _targetTexture;
     AutoProperty _targetRenderer;
     AutoProperty _targetMaterialProperty;
 
-    // NDI name setter
-    void SetNdiName(string name)
-    {
-        foreach (NdiReceiver send in targets)
-        {
-            Undo.RecordObject(send, "Changed NDI Name");
-            send.ndiName = name;
-        }
-    }
+    #pragma warning restore
 
     // NDI name dropdown
     void ShowNdiNameDropdown(Rect rect)
@@ -55,7 +49,7 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
     void OnSelectName(object name)
     {
         serializedObject.Update();
-        SetNdiName((string)name);
+        _ndiName.Target.stringValue = (string)name;
         serializedObject.ApplyModifiedProperties();
     }
 
@@ -68,9 +62,7 @@ sealed class NdiReceiverEditor : UnityEditor.Editor
         EditorGUILayout.BeginHorizontal();
 
         // NDI Name
-        EditorGUI.BeginChangeCheck();
         EditorGUILayout.DelayedTextField(_ndiName, Labels.NdiName);
-        if (EditorGUI.EndChangeCheck()) SetNdiName(_ndiName.Target.stringValue);
 
         // NDI name dropdown
         var rect = EditorGUILayout.GetControlRect(false, GUILayout.Width(60));
