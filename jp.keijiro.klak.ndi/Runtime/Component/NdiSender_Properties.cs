@@ -9,15 +9,16 @@ public sealed partial class NdiSender : MonoBehaviour
     #region NDI source settings
 
     [SerializeField] string _ndiName = "NDI Sender";
+    string _ndiNameRuntime;
 
     public string ndiName
-      { get => _ndiName;
-        set => ChangeNdiName(value); }
+      { get => _ndiNameRuntime;
+        set => SetNdiName(value); }
 
-    void ChangeNdiName(string name)
+    void SetNdiName(string name)
     {
-        if (_ndiName == name) return;
-        _ndiName = name;
+        if (_ndiNameRuntime == name) return;
+        _ndiName = _ndiNameRuntime = name;
         Restart();
     }
 
@@ -32,28 +33,30 @@ public sealed partial class NdiSender : MonoBehaviour
     #region Capture target settings
 
     [SerializeField] CaptureMethod _captureMethod = CaptureMethod.GameView;
+    CaptureMethod _captureMethodRuntime;
 
     public CaptureMethod captureMethod
-      { get => _captureMethod;
-        set => ChangeCaptureMethod(value); }
+      { get => _captureMethodRuntime;
+        set => SetCaptureMethod(value); }
 
-    void ChangeCaptureMethod(CaptureMethod method)
+    void SetCaptureMethod(CaptureMethod method)
     {
-        if (_captureMethod == method) return;
-        _captureMethod = method;
+        if (_captureMethodRuntime == method) return;
+        _captureMethod = _captureMethodRuntime = method;
         Restart();
     }
 
     [SerializeField] Camera _sourceCamera = null;
+    Camera _sourceCameraRuntime;
 
     public Camera sourceCamera
       { get => _sourceCamera;
-        set => ChangeSourceCamera(value); }
+        set => SetSourceCamera(value); }
 
-    void ChangeSourceCamera(Camera camera)
+    void SetSourceCamera(Camera camera)
     {
-        if (_sourceCamera == camera) return;
-        _sourceCamera = camera;
+        if (_sourceCameraRuntime == camera) return;
+        _sourceCamera = _sourceCameraRuntime = camera;
         ResetState();
     }
 
@@ -79,6 +82,18 @@ public sealed partial class NdiSender : MonoBehaviour
 
     public void SetResources(NdiResources resources)
       => _resources = resources;
+
+    #endregion
+
+    #region Editor change validation
+
+    void OnValidate()
+    {
+        // Apply changes on the serialized fields to the runtime properties.
+        ndiName = _ndiName;
+        captureMethod = _captureMethod;
+        sourceCamera = _sourceCamera;
+    }
 
     #endregion
 }

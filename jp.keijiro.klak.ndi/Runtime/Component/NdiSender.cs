@@ -16,11 +16,11 @@ public sealed partial class NdiSender : MonoBehaviour
     void PrepareSenderObjects()
     {
         // Game view capture method: Borrow the shared sender instance.
-        if (_send == null && _captureMethod == CaptureMethod.GameView)
+        if (_send == null && captureMethod == CaptureMethod.GameView)
             _send = SharedInstance.GameViewSend;
 
         // Private object initialization
-        if (_send == null) _send = Interop.Send.Create(_ndiName);
+        if (_send == null) _send = Interop.Send.Create(ndiName);
         if (_pool == null) _pool = new ReadbackPool();
         if (_converter == null) _converter = new FormatConverter(_resources);
         if (_onReadback == null) _onReadback = OnReadback;
@@ -62,20 +62,20 @@ public sealed partial class NdiSender : MonoBehaviour
             PrepareSenderObjects();
 
             // Texture capture method
-            if (_captureMethod == CaptureMethod.Texture && _sourceTexture != null)
+            if (captureMethod == CaptureMethod.Texture && sourceTexture != null)
             {
-                var (w, h) = (_sourceTexture.width, _sourceTexture.height);
+                var (w, h) = (sourceTexture.width, sourceTexture.height);
 
                 // Pixel format conversion
-                var buffer = _converter.Encode(_sourceTexture, _keepAlpha, true);
+                var buffer = _converter.Encode(sourceTexture, keepAlpha, true);
 
                 // Readback entry allocation and request
-                _pool.NewEntry(w, h, _keepAlpha, metadata)
+                _pool.NewEntry(w, h, keepAlpha, metadata)
                      .RequestReadback(buffer, _onReadback);
             }
 
             // Game View capture method
-            if (_captureMethod == CaptureMethod.GameView)
+            if (captureMethod == CaptureMethod.GameView)
             {
                 // Game View screen capture with a temporary RT
                 var (w, h) = (Screen.width, Screen.height);
@@ -83,11 +83,11 @@ public sealed partial class NdiSender : MonoBehaviour
                 ScreenCapture.CaptureScreenshotIntoRenderTexture(tempRT);
 
                 // Pixel format conversion
-                var buffer = _converter.Encode(tempRT, _keepAlpha, false);
+                var buffer = _converter.Encode(tempRT, keepAlpha, false);
                 RenderTexture.ReleaseTemporary(tempRT);
 
                 // Readback entry allocation and request
-                _pool.NewEntry(w, h, _keepAlpha, metadata)
+                _pool.NewEntry(w, h, keepAlpha, metadata)
                      .RequestReadback(buffer, _onReadback);
             }
         }
@@ -106,11 +106,11 @@ public sealed partial class NdiSender : MonoBehaviour
         PrepareSenderObjects();
 
         // Pixel format conversion
-        var (w, h) = (_sourceCamera.pixelWidth, _sourceCamera.pixelHeight);
-        var buffer = _converter.Encode(cb, source, w, h, _keepAlpha, true);
+        var (w, h) = (sourceCamera.pixelWidth, sourceCamera.pixelHeight);
+        var buffer = _converter.Encode(cb, source, w, h, keepAlpha, true);
 
         // Readback entry allocation and request
-        _pool.NewEntry(w, h, _keepAlpha, metadata)
+        _pool.NewEntry(w, h, keepAlpha, metadata)
              .RequestReadback(buffer, _onReadback);
     }
 
@@ -183,17 +183,17 @@ public sealed partial class NdiSender : MonoBehaviour
         // break here if willBeActive is false.
         if (!willBeActive) return;
 
-        if (_captureMethod == CaptureMethod.Camera)
+        if (captureMethod == CaptureMethod.Camera)
         {
             #if KLAK_NDI_HAS_SRP
 
             // Camera capture callback setup
-            if (_sourceCamera != null)
-                CameraCaptureBridge.AddCaptureAction(_sourceCamera, OnCameraCapture);
+            if (sourceCamera != null)
+                CameraCaptureBridge.AddCaptureAction(sourceCamera, OnCameraCapture);
 
             #endif
 
-            _attachedCamera = _sourceCamera;
+            _attachedCamera = sourceCamera;
         }
         else
         {

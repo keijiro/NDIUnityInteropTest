@@ -7,12 +7,11 @@ public sealed partial class NdiReceiver : MonoBehaviour
     #region NDI source settings
 
     [SerializeField] string _ndiName = null;
+    string _ndiNameRuntime;
 
     public string ndiName
       { get => _ndiNameRuntime;
         set => SetNdiName(value); }
-
-    string _ndiNameRuntime;
 
     void SetNdiName(string name)
     {
@@ -20,9 +19,6 @@ public sealed partial class NdiReceiver : MonoBehaviour
         _ndiName = _ndiNameRuntime = name;
         Restart();
     }
-
-    void OnValidate()
-      => ndiName = _ndiName;
 
     #endregion
 
@@ -64,6 +60,16 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     public void SetResources(NdiResources resources)
       => _resources = resources;
+
+    #endregion
+
+    #region Editor change validation
+
+    void OnValidate()
+    {
+        // Apply changes on the serialized fields to the runtime properties.
+        ndiName = _ndiName;
+    }
 
     #endregion
 }
