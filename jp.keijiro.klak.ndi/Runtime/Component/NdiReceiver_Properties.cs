@@ -10,7 +10,14 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     public string ndiName
       { get => _ndiName;
-        set { _ndiName = value; Restart(); } }
+        set => ChangeNdiName(value); }
+
+    void ChangeNdiName(string name)
+    {
+        if (_ndiName == name) return;
+        _ndiName = name;
+        Restart();
+    }
 
     #endregion
 
@@ -56,4 +63,4 @@ public sealed partial class NdiReceiver : MonoBehaviour
     #endregion
 }
 
-}
+} // namespace Klak.Ndi

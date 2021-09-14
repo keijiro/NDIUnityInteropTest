@@ -33,4 +33,4 @@ static class RecvHelper
     }
 }
 
-}
+} // namespace Klak.Ndi

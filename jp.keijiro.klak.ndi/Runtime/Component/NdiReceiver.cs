@@ -1,5 +1,6 @@
 ﻿using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
+using IntPtr = System.IntPtr;
 using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Klak.Ndi {
@@ -7,20 +8,20 @@ namespace Klak.Ndi {
 [ExecuteInEditMode]
 public sealed partial class NdiReceiver : MonoBehaviour
 {
-    #region Internal objects
+    #region Receiver objects
 
     Interop.Recv _recv;
     FormatConverter _converter;
     MaterialPropertyBlock _override;
 
-    void PrepareInternalObjects()
+    void PrepareReceiverObjects()
     {
         if (_recv == null) _recv = RecvHelper.TryCreateRecv(_ndiName);
         if (_converter == null) _converter = new FormatConverter(_resources);
         if (_override == null) _override = new MaterialPropertyBlock();
     }
 
-    void ReleaseInternalObjects()
+    void ReleaseReceiverObjects()
     {
         _recv?.Dispose();
         _recv = null;
@@ -35,28 +36,25 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     RenderTexture TryReceiveFrame()
     {
-        PrepareInternalObjects();
-
-        // Do nothing if the recv object is not ready.
+        PrepareReceiverObjects();
         if (_recv == null) return null;
 
-        // Try getting a video frame.
+        // Video frame capturing
         var frameOrNull = RecvHelper.TryCaptureVideoFrame(_recv);
         if (frameOrNull == null) return null;
         var frame = (Interop.VideoFrame)frameOrNull;
 
         // Pixel format conversion
         var rt = _converter.Decode
-          (frame.Width, frame.Height,
-           Util.CheckAlpha(frame.FourCC), frame.Data);
+          (frame.Width, frame.Height, Util.HasAlpha(frame.FourCC), frame.Data);
 
-        // Copy the metadata if any.
-        if (frame.Metadata != System.IntPtr.Zero)
+        // Metadata retrieval
+        if (frame.Metadata != IntPtr.Zero)
             metadata = Marshal.PtrToStringAnsi(frame.Metadata);
         else
             metadata = null;
 
-        // Free the frame up.
+        // Video frame release
         _recv.FreeVideoFrame(frame);
 
         return rt;
@@ -66,13 +64,13 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     #region Component state controller
 
-    internal void Restart() => ReleaseInternalObjects();
+    internal void Restart() => ReleaseReceiverObjects();
 
     #endregion
 
     #region MonoBehaviour implementation
 
-    void OnDisable() => ReleaseInternalObjects();
+    void OnDisable() => ReleaseReceiverObjects();
 
     void Update()
     {
@@ -95,4 +93,4 @@ public sealed partial class NdiReceiver : MonoBehaviour
     #endregion
 }
 
-}
+} // namespace Klak.Ndi
