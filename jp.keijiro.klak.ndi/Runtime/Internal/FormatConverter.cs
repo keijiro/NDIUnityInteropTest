@@ -1,10 +1,18 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using IDisposable = System.IDisposable;
 using IntPtr = System.IntPtr;
 
 namespace Klak.Ndi {
 
-sealed class FormatConverter : System.IDisposable
+//
+// A format converter class wrapping GPU tasks and resources
+//
+// We use GPU (compute) to convert textures between the renderer-friendly raw
+// formats and the NDI-friendly (chroma-subsampled) formats. This class wraps
+// the cumbersome things and provides a simple API.
+//
+sealed class FormatConverter : IDisposable
 {
     #region Common members
 
@@ -22,14 +30,8 @@ sealed class FormatConverter : System.IDisposable
         _decoderInput?.Dispose();
         _decoderInput = null;
 
-        if (_decoderOutput != null)
-        {
-            if (Application.isPlaying)
-                Object.Destroy(_decoderOutput);
-            else
-                Object.DestroyImmediate(_decoderOutput);
-            _decoderOutput = null;
-        }
+        Util.Destroy(_decoderOutput);
+        _decoderOutput = null;
     }
 
     #endregion
@@ -45,6 +47,9 @@ sealed class FormatConverter : System.IDisposable
         var height = source.height;
         var dataCount = Util.FrameDataSize(width, height, enableAlpha) / 4;
 
+        Debug.Assert((width & 0xf) == 0);
+        Debug.Assert((height & 0x7) == 0);
+
         // Reallocate the output buffer when the output size was changed.
         if (_encoderOutput != null && _encoderOutput.count != dataCount)
             ReleaseBuffers();
@@ -55,8 +60,8 @@ sealed class FormatConverter : System.IDisposable
 
         // Compute thread dispatching
         var compute = _resources.encoderCompute;
-        var pass = enableAlpha ? 1 : 0;
-        compute.SetInt("VFlip", vflip ? -1 : 1);
+        var pass = (enableAlpha ? 2 : 0) + (Util.InGammaMode ? 0 : 1);
+        compute.SetFloat("VFlip", vflip ? 1 : 0);
         compute.SetTexture(pass, "Source", source);
         compute.SetBuffer(pass, "Destination", _encoderOutput);
         compute.Dispatch(pass, width / 16, height / 8, 1);
@@ -71,6 +76,9 @@ sealed class FormatConverter : System.IDisposable
     {
         var dataCount = Util.FrameDataSize(width, height, enableAlpha) / 4;
 
+        Debug.Assert((width & 0xf) == 0);
+        Debug.Assert((height & 0x7) == 0);
+
         // Reallocate the output buffer when the output size was changed.
         if (_encoderOutput != null && _encoderOutput.count != dataCount)
             ReleaseBuffers();
@@ -81,8 +89,8 @@ sealed class FormatConverter : System.IDisposable
 
         // Compute thread dispatching
         var compute = _resources.encoderCompute;
-        var pass = enableAlpha ? 1 : 0;
-        cb.SetComputeIntParam(compute, "VFlip", vflip ? -1 : 1);
+        var pass = (enableAlpha ? 2 : 0) + (Util.InGammaMode ? 0 : 1);
+        cb.SetComputeFloatParam(compute, "VFlip", vflip ? 1 : 0);
         cb.SetComputeTextureParam(compute, pass, "Source", source);
         cb.SetComputeBufferParam(compute, pass, "Destination", _encoderOutput);
         cb.DispatchCompute(compute, pass, width / 16, height / 8, 1);
@@ -103,6 +111,9 @@ sealed class FormatConverter : System.IDisposable
       Decode(int width, int height, bool enableAlpha, IntPtr data)
     {
         var dataCount = Util.FrameDataSize(width, height, enableAlpha) / 4;
+
+        Debug.Assert((width & 0xf) == 0);
+        Debug.Assert((height & 0x7) == 0);
 
         // Reallocate the input buffer when the input size was changed.
         if (_decoderInput != null && _decoderInput.count != dataCount)
@@ -129,9 +140,15 @@ sealed class FormatConverter : System.IDisposable
         // Input buffer update
         _decoderInput.SetData(data, dataCount, 4);
 
+        // Kenel select
+        var pass = (enableAlpha ? 2 : 0);
+
+        // As far as we know, only Metal supports sRGB write to UAV, so we
+        // use the linear-color kernels only on Metal
+        if (!Util.InGammaMode && Util.UsingMetal) pass++;
+
         // Decoder compute dispatching
         var compute = _resources.decoderCompute;
-        var pass = enableAlpha ? 1 : 0;
         compute.SetBuffer(pass, "Source", _decoderInput);
         compute.SetTexture(pass, "Destination", _decoderOutput);
         compute.Dispatch(pass, width / 16, height / 8, 1);

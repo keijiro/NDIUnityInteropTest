@@ -1,6 +1,7 @@
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
+using UnityEngine.Rendering;
 using IntPtr = System.IntPtr;
 
 namespace Klak.Ndi {
@@ -13,6 +14,22 @@ static class Util
 
     public static bool HasAlpha(Interop.FourCC fourCC)
       => fourCC == Interop.FourCC.UYVA;
+
+    public static bool InGammaMode
+      => QualitySettings.activeColorSpace == ColorSpace.Gamma;
+
+    public static bool UsingMetal
+      => SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal;
+
+    public static void Destroy(Object obj)
+    {
+        if (obj == null) return;
+
+        if (Application.isPlaying)
+            Object.Destroy(obj);
+        else
+            Object.DestroyImmediate(obj);
+    }
 }
 
 // Extension method to add IntPtr support to ComputeBuffer.SetData
