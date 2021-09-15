@@ -34,6 +34,18 @@ sealed class FormatConverter : IDisposable
         _decoderOutput = null;
     }
 
+    void CheckDimensions(int width, int height)
+    {
+        if ((width & 0xf) != 0)
+            WarnWrongSize($"Width ({width}) must be a multiple of 16.");
+
+        if ((height & 0x7) != 0)
+            WarnWrongSize($"Height ({height}) must be a multiple of 8.");
+    }
+
+    void WarnWrongSize(string text)
+      => Debug.LogWarning("KlakNDI unsupported frame size: " + text);
+
     #endregion
 
     #region Encoder implementation
@@ -47,16 +59,16 @@ sealed class FormatConverter : IDisposable
         var height = source.height;
         var dataCount = Util.FrameDataSize(width, height, enableAlpha) / 4;
 
-        Debug.Assert((width & 0xf) == 0);
-        Debug.Assert((height & 0x7) == 0);
-
         // Reallocate the output buffer when the output size was changed.
         if (_encoderOutput != null && _encoderOutput.count != dataCount)
             ReleaseBuffers();
 
         // Output buffer allocation
         if (_encoderOutput == null)
+        {
+            CheckDimensions(width, height);
             _encoderOutput = new ComputeBuffer(dataCount, 4);
+        }
 
         // Compute thread dispatching
         var compute = _resources.encoderCompute;
@@ -76,8 +88,7 @@ sealed class FormatConverter : IDisposable
     {
         var dataCount = Util.FrameDataSize(width, height, enableAlpha) / 4;
 
-        Debug.Assert((width & 0xf) == 0);
-        Debug.Assert((height & 0x7) == 0);
+        CheckDimensions(width, height);
 
         // Reallocate the output buffer when the output size was changed.
         if (_encoderOutput != null && _encoderOutput.count != dataCount)
@@ -85,7 +96,10 @@ sealed class FormatConverter : IDisposable
 
         // Output buffer allocation
         if (_encoderOutput == null)
+        {
+            CheckDimensions(width, height);
             _encoderOutput = new ComputeBuffer(dataCount, 4);
+        }
 
         // Compute thread dispatching
         var compute = _resources.encoderCompute;
@@ -112,8 +126,7 @@ sealed class FormatConverter : IDisposable
     {
         var dataCount = Util.FrameDataSize(width, height, enableAlpha) / 4;
 
-        Debug.Assert((width & 0xf) == 0);
-        Debug.Assert((height & 0x7) == 0);
+        CheckDimensions(width, height);
 
         // Reallocate the input buffer when the input size was changed.
         if (_decoderInput != null && _decoderInput.count != dataCount)
@@ -132,6 +145,7 @@ sealed class FormatConverter : IDisposable
         // Output buffer allocation
         if (_decoderOutput == null)
         {
+            CheckDimensions(width, height);
             _decoderOutput = new RenderTexture(width, height, 0);
             _decoderOutput.enableRandomWrite = true;
             _decoderOutput.Create();
