@@ -17,6 +17,13 @@
         "com.unity.modules.screencapture": "1.0.0"
       }
     },
+    "jp.keijiro.testcards": {
+      "version": "1.0.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://registry.npmjs.com"
+    },
     "com.unity.modules.imageconversion": {
       "version": "1.0.0",
       "depth": 2,
