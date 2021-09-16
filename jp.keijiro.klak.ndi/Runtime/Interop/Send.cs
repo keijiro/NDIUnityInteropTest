@@ -29,8 +29,8 @@ public class Send : SafeHandleZeroOrMinusOneIsInvalid
     public void SendVideoAsync(in VideoFrame data)
       => _SendVideoAsync(this, data);
 
-    public void SendVideoAsync(IntPtr data)
-      => _SendVideoAsync(this, data);
+    public void SendVideoAsync()
+      => _SendVideoAsync(this, IntPtr.Zero);
 
     public bool SetTally(out Tally tally, uint timeout)
       => _SetTally(this, out tally, timeout);

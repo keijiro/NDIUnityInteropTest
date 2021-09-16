@@ -31,6 +31,7 @@ public sealed partial class NdiSender : MonoBehaviour
         // Total synchronization: This may cause a frame hiccup, but it's
         // needed to dispose the readback buffers safely.
         AsyncGPUReadback.WaitAllRequests();
+        _send?.SendVideoAsync();
 
         // Game view capture method: Just leave the shared sender instnace.
         if (SharedInstance.IsGameViewSend(_send)) _send = null;

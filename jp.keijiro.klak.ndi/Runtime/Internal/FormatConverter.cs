@@ -44,7 +44,7 @@ sealed class FormatConverter : IDisposable
     }
 
     void WarnWrongSize(string text)
-      => Debug.LogWarning("KlakNDI unsupported frame size: " + text);
+      => Debug.LogWarning("[KlakNDI] Unsupported frame size: " + text);
 
     #endregion
 
