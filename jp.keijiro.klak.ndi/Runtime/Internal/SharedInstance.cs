@@ -14,7 +14,7 @@ static class SharedInstance
       => _gameViewSend ?? InitializeGameViewSend();
 
     static public bool IsGameViewSend(Interop.Send send)
-      => send == _gameViewSend;
+      => send != null && send == _gameViewSend;
 
     #endregion
 
