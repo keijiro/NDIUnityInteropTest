@@ -65,11 +65,16 @@ public sealed partial class NdiReceiver : MonoBehaviour
 
     #region Editor change validation
 
+    // Applies changes on the serialized fields to the runtime properties.
+    // We use OnValidate on Editor, which also works as an initializer.
+    // Player never call it, so we use Awake instead of it.
+
+    #if UNITY_EDITOR
     void OnValidate()
-    {
-        // Apply changes on the serialized fields to the runtime properties.
-        ndiName = _ndiName;
-    }
+    #else
+    void Awake()
+    #endif
+      => ndiName = _ndiName;
 
     #endregion
 }
