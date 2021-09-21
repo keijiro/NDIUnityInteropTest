@@ -40,6 +40,17 @@ static class SharedInstance
 
     #endregion
 
+    #region Initializer implementation
+
+    static SharedInstance()
+    {
+        #if UNITY_ANDROID && !UNITY_EDITOR
+        AndroidHelper.SetupNetwork();
+        #endif
+    }
+
+    #endregion
+
     #region Finalizer implementatioin
 
     // We have to clean up the shared objects on a domain reload.

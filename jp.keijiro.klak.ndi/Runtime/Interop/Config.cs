@@ -6,7 +6,7 @@ static class Config
     public const string DllName = "Processing.NDI.Lib.x64";
     #elif UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
     public const string DllName = "libndi";
-    #elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX
+    #elif UNITY_EDITOR_LINUX || UNITY_STANDALONE_LINUX || UNITY_ANDROID
     public const string DllName = "ndi";
     #else
     public const string DllName = "__Internal";

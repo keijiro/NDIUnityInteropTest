@@ -12,6 +12,7 @@
     }
   ],
   "dependencies": {
+    "com.unity.modules.androidjni": "1.0.0",
     "com.unity.ugui": "1.0.0",
     "org.nuget.system.memory": "4.5.3",
     "jp.keijiro.testcards": "1.0.0",
