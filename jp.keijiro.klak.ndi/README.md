@@ -22,7 +22,7 @@ System Requirements
 Desktop platforms:
 
 - Windows: x64, D3D11/D3D12
-- macOS: x64 or arm64 (M1), Metal
+- macOS: x64/arm64, Metal
 - Linux: x64, Vulkan
 
 Mobile platforms:
