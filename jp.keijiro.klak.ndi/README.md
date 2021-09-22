@@ -4,7 +4,7 @@ KlakNDI
 ![gif](https://i.imgur.com/I1ZMSY8.gif)
 
 **KlakNDI** is a Unity plugin that allows sending/receiving video streams
-between several types of devices using [NDI]®.
+between several devices using [NDI]®.
 
 [NDI]® (Network Device Interface) is a standard developed by [NewTek], Inc that
 enables applications to deliver video streams via a local area network. Please
@@ -22,7 +22,7 @@ System Requirements
 Desktop platforms:
 
 - Windows: x64, D3D11/D3D12
-- macOS: x64/arm64, Metal
+- macOS: x64 or arm64 (M1), Metal
 - Linux: x64, Vulkan
 
 Mobile platforms:
@@ -30,24 +30,31 @@ Mobile platforms:
 - iOS: arm64, Metal
 - Android: arm64, Vulkan
 
-KlakNDI runs without the NDI SDK on the most of the supported platforms, but
-only the iOS platform requires the SDK to build on Xcode. Please download and
-install the NDI Advanced SDK for iOS (v5.0) in advance of building.
+KlakNDI runs without the NDI SDK on most supported platforms, but only the iOS
+platform requires the SDK to build on Xcode. Please download and install the NDI
+Advanced SDK for iOS in advance of building.
 
-Known Issue
------------
+Known Issues and Limitations
+----------------------------
 
-At the moment, KlakNDI doesn't run on Unity 2021.2/2022.1 with HDRP due to the
-[Searcher package issue]. Please wait for the fix to the Searcher package.
+- At the moment, KlakNDI doesn't run on Unity 2021.2/2022.1 with HDRP due to the
+  [Searcher package issue]. Wait for the fix to the Searcher package.
 
 [Searcher package issue]:
   https://forum.unity.com/threads/2021-2-0b6-and-system-memory-readonlyspan-under-net-4-8.1152104/
+
+- Dimensions of frame images should be multiples of 16x8. This limitation causes
+  glitches on several mobile devices when using the Game View capture method.
+
+- KlakNDI doesn't support audio streaming. There are several technical
+  difficulties to implement without perceptible noise or delay, so there is no
+  plan to implement it.
 
 How To Install
 --------------
 
 This package uses the [scoped registry] feature to resolve package
-dependencies. Please add the following lines to the manifest file
+dependencies. Add the following lines to the manifest file
 (`Packages/manifest.json`).
 
 [scoped registry]: https://docs.unity3d.com/Manual/upm-scoped.html
@@ -188,10 +195,9 @@ You can enumerate currently available NDI sources using the NDI Finder class
 
 [Source Selector]: URP/Assets/Script/SourceSelector.cs
 
-You can instantiate the NDI Sender/Receiver component from a script but have
-to set an NDI Resources asset (`NdiResources.asset`) right after the
-instantiation. See the [Sender Benchmark]/[Receiver Benchmark] examples for
-details.
+You can instantiate the NDI Sender/Receiver component from a script but at
+the same time, you have to set an NDI Resources asset (`NdiResources.asset`).
+See the [Sender Benchmark]/[Receiver Benchmark] examples for details.
 
 [Sender Benchmark]: URP/Assets/Script/SenderBenchmark.cs
 [Receiver Benchmark]: URP/Assets/Script/ReceiverBenchmark.cs
